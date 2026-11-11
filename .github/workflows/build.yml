@@ -1,0 +1,77 @@
+name: Compilar APK
+
+# Dispara em push na main, em tag de versão e manualmente na aba Actions.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # Mesma versão usada no desenvolvimento, para não haver divergência.
+      - name: Flutter 3.47.9
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.9'
+          channel: stable
+          cache: true
+
+      - name: Aceitar licenças do Android
+        run: yes | "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      # O projeto fixa NDK 30.0.16248370 no build.gradle.kts (o Flutter exige
+      # NDK e a CLI nova do Android não o instala). Na CI o sdkmanager clássico
+      # está disponível e resolve.
+      - name: Instalar NDK exigido pelo projeto
+        run: |
+          yes | "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" "ndk;30.0.16248370" > /dev/null || true
+          ls "${ANDROID_HOME}/ndk" || true
+
+      - name: Dependências
+        run: flutter pub get
+
+      - name: Análise estática
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Testes
+        run: flutter test
+
+      - name: Compilar APK de release
+        run: flutter build apk --release
+
+      # Artefato: fica na aba Actions (exige login no GitHub).
+      - name: Guardar APK como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: cultivando-saude-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 90
+
+      # Release: link PÚBLICO, que o celular baixa sem login.
+      - name: Publicar release (somente em tag v*)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/app/outputs/flutter-apk/app-release.apk
+          name: Cultivando Saúde ${{ github.ref_name }}
+          body: |
+            APK gerado automaticamente pelo GitHub Actions.
+
+            1. Baixe `app-release.apk` no celular.
+            2. Instale (o Android pede para permitir fonte desconhecida).
+            3. Autorize as notificações:
+               Configurações → Aplicativos → Cultivando Saúde → Notificações.
