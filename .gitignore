@@ -61,3 +61,5 @@ toolchain/
 apk/
 build-apk.mjs
 *.log
+dist/
+android-build/
