@@ -53,3 +53,11 @@ android/local.properties
 **/ephemeral/
 *.iml
 .gh/
+
+# --- artefatos locais de build (nao vao para o repositorio) ---
+android-sdk/
+toolchain/
+.pub-cache/
+apk/
+build-apk.mjs
+*.log
