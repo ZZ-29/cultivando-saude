@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -111,9 +110,6 @@ class CartaoRemediosState extends State<CartaoRemedios> {
     }
   }
 
-  String get _hora =>
-      '${_agora.hour.toString().padLeft(2, '0')}:${_agora.minute.toString().padLeft(2, '0')}';
-
   /// "2 de 4 tomados · próxima 20:00"
   String get _resumo {
     if (!_carregou) return '…';
@@ -165,98 +161,59 @@ class CartaoRemediosState extends State<CartaoRemedios> {
           ),
           child: InkWell(
             onTap: widget.aoTocar,
-            child: LayoutBuilder(
-              builder: (BuildContext context, BoxConstraints limites) {
-                final double corpoHora = limites.maxWidth >= 240 ? 34 : 26;
-
-                return Padding(
-                  padding: const EdgeInsets.fromLTRB(11, 8, 10, 8),
-                  child: Stack(
-                    children: <Widget>[
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: <Widget>[
-                          Expanded(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                Container(
-                                  width: 26,
-                                  height: 26,
-                                  decoration: BoxDecoration(
-                                    // Igual aos outros cards: fundo claro e
-                                    // glifo na cor cheia da categoria.
-                                    color: Colors.white.withValues(alpha: 0.78),
-                                    borderRadius: BorderRadius.circular(9),
-                                    border: Border.all(
-                                      color: c.cor.withValues(alpha: 0.30),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    c.icone,
-                                    color: c.cor,
-                                    size: 17,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  c.titulo,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w800,
-                                    height: 1.05,
-                                    color: corTexto,
-                                  ),
-                                ),
-                                const SizedBox(height: 1),
-                                Text(
-                                  _resumo,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 11.5,
-                                    height: 1.15,
-                                    color: corTexto.withValues(alpha: 0.80),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          // O relógio tem largura máxima (5 dígitos) e encolhe
-                          // dentro dela: em tela estreita ou com a fonte do
-                          // sistema aumentada ele reduz em vez de estourar.
-                          ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxWidth: corpoHora * 3.1,
-                            ),
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                _hora,
-                                style: TextStyle(
-                                  fontFamily: 'Nunito',
-                                  fontVariations: const <ui.FontVariation>[
-                                    ui.FontVariation('wght', 700),
-                                  ],
-                                  fontSize: corpoHora,
-                                  height: 1.0,
-                                  letterSpacing: -1.0,
-                                  color: corTexto,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+            // **Sem relógio aqui.** A hora grande vive no card da marca, no
+            // topo da tela. Neste card ela ocupava metade da largura e o nome
+            // "Remédios" aparecia cortado ("RE") na grade de duas colunas.
+            // O horário da próxima dose continua escrito no resumo.
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(11, 8, 10, 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Container(
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      // Igual aos outros cards: fundo claro e glifo na cor.
+                      color: Colors.white.withValues(alpha: 0.78),
+                      borderRadius: BorderRadius.circular(9),
+                      border: Border.all(
+                        color: c.cor.withValues(alpha: 0.30),
+                        width: 1,
                       ),
-                    ],
+                    ),
+                    child: Icon(
+                      c.icone,
+                      color: c.cor,
+                      size: 17,
+                    ),
                   ),
-                );
-              },
+                  const SizedBox(height: 4),
+                  Text(
+                    c.titulo,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      height: 1.05,
+                      color: corTexto,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    _resumo,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      height: 1.15,
+                      color: corTexto.withValues(alpha: 0.80),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
