@@ -7,21 +7,25 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/card_config.dart';
 
-/// CARD DA MARCA — o cartão lilás do topo.
+/// CARD DA MARCA — o cartão do topo.
 ///
 /// ```
-///    🌷🌸   Cultivando Saúde   🌼🌺🌿
-///          Cuidar é preservar a vida
+///   🌸                      🌼
+///        Cultivando Saúde          ← nome grande, dourado
+///        Cuidar é preservar a vida
+///   🌿   sexta-feira, 13…   08:42  🌷
 /// ```
 ///
-/// O nome fica **centralizado**, com o jardim dividido dos dois lados, e é
-/// escrito num **dourado em gradiente** — o metal, não a tinta: claro no
-/// topo da letra, fundo na base, como ouro polido sob luz.
+/// **v18:** as flores saíram dos dois canteiros laterais e foram **espalhadas
+/// pelo card** (cantos e bordas), pequenas (12–17px) e atrás do conteúdo.
+/// Antes elas ocupavam 132px de largura, um de cada lado, e o nome era
+/// encolhido para caber no meio — ficava menor que as próprias flores.
+///
+/// O nome é escrito num **dourado em gradiente** — o metal, não a tinta.
 ///
 /// A vida do card vem de movimentos lentos (ciclo de 9 s):
-///   • o gradiente lilás do fundo desliza na diagonal;
-///   • as flores balançam em fases diferentes;
-///   • as flores respiram (sobem ~2,5 px).
+///   • o gradiente do fundo desliza na diagonal;
+///   • as flores balançam e respiram em fases diferentes.
 class CartaoDashboard extends StatefulWidget {
   const CartaoDashboard({
     required this.config,
@@ -41,23 +45,21 @@ class _CartaoDashboardState extends State<CartaoDashboard>
     duration: const Duration(seconds: 9),
   )..repeat(reverse: true);
 
-  /// Jardim **simétrico** e mais cheio: três flores de cada lado, com tamanhos
-  /// espelhados (grande junto do nome, pequena na ponta) e alturas diferentes
-  /// — canteiro de verdade, não fileira de carimbos.
-  static const List<_Flor> _esquerda = <_Flor>[
-    _Flor('🌼', 14, 0.10, 1.2, 5),
-    _Flor('🌸', 17, 0.28, 2.2, 2),
-    _Flor('🌷', 22, 0.00, 1.6, 0),
+  /// Flores espalhadas numa **faixa no alto do card** (22px).
+  ///
+  /// Antes elas flutuavam por todo o card e as da base caíam em cima do
+  /// relógio. Numa faixa própria, ficam soltas e espalhadas sem encostar em
+  /// nome, slogan, data ou hora.
+  static const List<_Flor> _flores = <_Flor>[
+    _Flor('🌸', 16, 0.03, 6, 0.12, 2.4),
+    _Flor('🌼', 13, 0.22, 0, 0.34, 1.8),
+    _Flor('🌻', 15, 0.41, 8, 0.62, 2.0),
+    _Flor('🌺', 14, 0.58, 1, 0.80, 2.2),
+    _Flor('🌷', 16, 0.77, 7, 0.22, 2.6),
+    _Flor('🌿', 13, 0.93, 2, 0.46, 1.9),
   ];
 
-  static const List<_Flor> _direita = <_Flor>[
-    _Flor('🌺', 22, 0.56, 2.0, 0),
-    _Flor('🌻', 17, 0.70, 1.4, 2),
-    _Flor('🌿', 14, 0.85, 1.8, 5),
-  ];
-
-  /// Largura fixa de cada canteiro — é o que garante o centro de verdade.
-  static const double _larguraJardim = 66;
+  static const double _alturaFaixaFlores = 22;
 
   late DateTime _agora = DateTime.now();
   Timer? _relogio;
@@ -94,7 +96,7 @@ class _CartaoDashboardState extends State<CartaoDashboard>
         final double t = Curves.easeInOut.transform(_ciclo.value);
 
         return Container(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.lerp(
@@ -129,94 +131,83 @@ class _CartaoDashboardState extends State<CartaoDashboard>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              // Nome centralizado: canteiros de largura IGUAL nas duas pontas.
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: <Widget>[
-                  SizedBox(
-                    width: _larguraJardim,
-                    child: _jardim(_esquerda, t, alinhamentoFim: true),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: _nomeDourado(nome),
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    width: _larguraJardim,
-                    child: _jardim(_direita, t, alinhamentoFim: false),
-                  ),
-                ],
+              // Faixa de flores: decoração que não encosta em nada.
+              SizedBox(
+                height: _alturaFaixaFlores,
+                width: double.infinity,
+                child: IgnorePointer(child: _faixaDeFlores(t)),
               ),
 
-              // Slogan
-              if (temSlogan) ...<Widget>[
-                const SizedBox(height: 2),
-                Text(
-                  widget.config.texto,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontFamily: 'Nunito',
-                    fontVariations: <ui.FontVariation>[
-                      ui.FontVariation('wght', 480),
-                    ],
-                    fontSize: 13.5,
-                    letterSpacing: 1.5,
-                    height: 1.2,
-                    color: AppColors.slogan,
-                  ),
-                ),
-              ],
+              // Nome grande: recebe a largura toda do card.
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: _nomeDourado(nome),
+              ),
 
-              // Data à esquerda (sob as flores da esquerda) e relógio grande
-              // à direita (sob as flores da direita).
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: <Widget>[
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          _dataLonga(_agora),
-                          maxLines: 1,
-                          style: const TextStyle(
-                            fontFamily: 'Nunito',
-                            fontVariations: <ui.FontVariation>[
-                              ui.FontVariation('wght', 650),
-                            ],
-                            fontSize: 14.5,
-                            height: 1.15,
-                            color: AppColors.salviaTexto,
+                  // Slogan
+                  if (temSlogan) ...<Widget>[
+                    const SizedBox(height: 2),
+                    Text(
+                      widget.config.texto,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Nunito',
+                        fontVariations: <ui.FontVariation>[
+                          ui.FontVariation('wght', 480),
+                        ],
+                        fontSize: 13.5,
+                        letterSpacing: 1.5,
+                        height: 1.2,
+                        color: AppColors.slogan,
+                      ),
+                    ),
+                  ],
+
+                  // Data à esquerda e relógio grande à direita.
+                  const SizedBox(height: 10),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: <Widget>[
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              _dataLonga(_agora),
+                              maxLines: 1,
+                              style: const TextStyle(
+                                fontFamily: 'Nunito',
+                                fontVariations: <ui.FontVariation>[
+                                  ui.FontVariation('wght', 650),
+                                ],
+                                fontSize: 14.5,
+                                height: 1.15,
+                                color: AppColors.salviaTexto,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                      const SizedBox(width: 10),
+                      Text(
+                        _hora(_agora),
+                        style: const TextStyle(
+                          fontFamily: 'Nunito',
+                          fontVariations: <ui.FontVariation>[
+                            ui.FontVariation('wght', 800),
+                          ],
+                          fontSize: 31,
+                          height: 1.0,
+                          letterSpacing: -0.8,
+                          color: AppColors.salviaTexto,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  Text(
-                    _hora(_agora),
-                    style: const TextStyle(
-                      fontFamily: 'Nunito',
-                      fontVariations: <ui.FontVariation>[
-                        ui.FontVariation('wght', 800),
-                      ],
-                      fontSize: 31,
-                      height: 1.0,
-                      letterSpacing: -0.8,
-                      color: AppColors.salviaTexto,
-                    ),
-                  ),
-                ],
-              ),
             ],
           ),
         );
@@ -257,34 +248,36 @@ class _CartaoDashboardState extends State<CartaoDashboard>
     );
   }
 
-  Widget _jardim(
-    List<_Flor> flores,
-    double t, {
-    required bool alinhamentoFim,
-  }) {
-    return Row(
-      mainAxisAlignment:
-          alinhamentoFim ? MainAxisAlignment.end : MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: flores.map((_Flor flor) {
-        final double fase = (t + flor.fase) % 1.0;
-        final double onda = math.sin(fase * 2 * math.pi);
+  /// Faixa de flores: cada flor numa posição horizontal própria, com um
+  /// deslocamento vertical pequeno — soltas, mas sem sair da faixa.
+  Widget _faixaDeFlores(double t) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints limites) {
+        final double largura = limites.maxWidth;
+        return Stack(
+          clipBehavior: Clip.none,
+          children: _flores.map((_Flor flor) {
+            final double fase = (t + flor.fase) % 1.0;
+            final double onda = math.sin(fase * 2 * math.pi);
 
-        return Padding(
-          // Altura própria de cada flor: dá o desenho de canteiro.
-          padding: EdgeInsets.only(left: 1, right: 1, bottom: flor.altura),
-          child: Transform.translate(
-            offset: Offset(0, -2.5 * (onda + 1) / 2),
-            child: Transform.rotate(
-              angle: onda * 0.030 * flor.balanco,
-              child: Text(
-                flor.emoji,
-                style: TextStyle(fontSize: flor.tamanho),
+            return Positioned(
+              // Centraliza a flor na posição horizontal escolhida.
+              left: largura * flor.x - flor.tamanho / 2,
+              top: flor.y,
+              child: Transform.translate(
+                offset: Offset(0, -2.0 * (onda + 1) / 2),
+                child: Transform.rotate(
+                  angle: onda * 0.06 * flor.balanco,
+                  child: Text(
+                    flor.emoji,
+                    style: TextStyle(fontSize: flor.tamanho),
+                  ),
+                ),
               ),
-            ),
-          ),
+            );
+          }).toList(growable: false),
         );
-      }).toList(growable: false),
+      },
     );
   }
 }
@@ -293,16 +286,23 @@ class _Flor {
   const _Flor(
     this.emoji,
     this.tamanho,
+    this.x,
+    this.y,
     this.fase,
     this.balanco,
-    this.altura,
   );
 
   final String emoji;
   final double tamanho;
+
+  /// Posição horizontal dentro da faixa (0 = esquerda, 1 = direita).
+  final double x;
+
+  /// Deslocamento vertical dentro da faixa, em pixels.
+  final double y;
+
   final double fase;
   final double balanco;
-  final double altura;
 }
 
 /// "sexta-feira, 13 de novembro de 2026"
