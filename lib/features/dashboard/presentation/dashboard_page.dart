@@ -247,8 +247,13 @@ class _DashboardPageState extends State<DashboardPage> {
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 300,
+                // **Duas colunas sempre.** Com `maxCrossAxisExtent` o número
+                // de colunas era calculado pela largura: em celular estreito
+                // (ou com "tamanho da tela" aumentado nas configurações do
+                // Android) sobrava 1 coluna só — cards empilhados e um vazio
+                // enorme ao lado de cada um.
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
                   mainAxisExtent: 100,
                   mainAxisSpacing: 8,
                   crossAxisSpacing: 8,

@@ -39,42 +39,47 @@ class CartaoGrade extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color corTexto = config.corBotao;
 
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(raio),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: config.cor.withValues(alpha: 0.16),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(raio),
-        clipBehavior: Clip.antiAlias,
-        child: Ink(
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints limites) {
+        // Duas colunas em celular estreito deixam o card com ~140px: aí o
+        // texto do rodapé ocupa UMA linha (em vez de duas) para não estourar
+        // a altura fixa de 100px.
+        final bool estreito = limites.maxWidth < 160;
+
+        return Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: <Color>[
-                AppColors.tinta(config.cor, 0.13),
-                AppColors.tinta(config.cor, 0.26),
-              ],
-            ),
             borderRadius: BorderRadius.circular(raio),
-            border: Border.all(
-              color: config.cor.withValues(alpha: 0.28),
-              width: 1.1,
-            ),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: config.cor.withValues(alpha: 0.16),
+                blurRadius: 12,
+                offset: const Offset(0, 5),
+              ),
+            ],
           ),
-          child: InkWell(
-            onTap: aoTocar,
-            child: Stack(
-              children: <Widget>[
-                Padding(
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(raio),
+            clipBehavior: Clip.antiAlias,
+            child: Ink(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: <Color>[
+                    AppColors.tinta(config.cor, 0.13),
+                    AppColors.tinta(config.cor, 0.26),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(raio),
+                border: Border.all(
+                  color: config.cor.withValues(alpha: 0.28),
+                  width: 1.1,
+                ),
+              ),
+              child: InkWell(
+                onTap: aoTocar,
+                child: Padding(
                   padding: const EdgeInsets.fromLTRB(11, 7, 9, 7),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,8 +87,8 @@ class CartaoGrade extends StatelessWidget {
                       Row(
                         children: <Widget>[
                           Container(
-                            width: 26,
-                            height: 26,
+                            width: estreito ? 24 : 26,
+                            height: estreito ? 24 : 26,
                             decoration: BoxDecoration(
                               // Fundo claro para o glifo colorido aparecer.
                               color: Colors.white.withValues(alpha: 0.78),
@@ -96,7 +101,7 @@ class CartaoGrade extends StatelessWidget {
                             child: Icon(
                               config.icone,
                               color: config.cor,
-                              size: 17,
+                              size: estreito ? 15 : 17,
                             ),
                           ),
                           const Spacer(),
@@ -114,7 +119,7 @@ class CartaoGrade extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 15,
+                          fontSize: estreito ? 14 : 15,
                           fontWeight: FontWeight.w800,
                           height: 1.1,
                           color: corTexto,
@@ -124,10 +129,10 @@ class CartaoGrade extends StatelessWidget {
                       Expanded(
                         child: Text(
                           texto ?? config.texto,
-                          maxLines: 2,
+                          maxLines: estreito ? 1 : 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: estreito ? 11.5 : 12,
                             height: 1.15,
                             color: corTexto.withValues(alpha: 0.78),
                           ),
@@ -136,11 +141,11 @@ class CartaoGrade extends StatelessWidget {
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

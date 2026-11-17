@@ -166,29 +166,27 @@ class _CartaoDashboardState extends State<CartaoDashboard>
                   ],
 
                   // Data à esquerda e relógio grande à direita.
+                  //
+                  // A data **não** usa FittedBox: encolhida para caber numa
+                  // linha ela ficava ilegível no celular. Aqui ela tem 17px e
+                  // quebra em duas linhas quando precisa.
                   const SizedBox(height: 10),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: <Widget>[
                       Expanded(
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              _dataLonga(_agora),
-                              maxLines: 1,
-                              style: const TextStyle(
-                                fontFamily: 'Nunito',
-                                fontVariations: <ui.FontVariation>[
-                                  ui.FontVariation('wght', 650),
-                                ],
-                                fontSize: 14.5,
-                                height: 1.15,
-                                color: AppColors.salviaTexto,
-                              ),
-                            ),
+                        child: Text(
+                          _dataLonga(_agora),
+                          maxLines: 2,
+                          softWrap: true,
+                          style: const TextStyle(
+                            fontFamily: 'Nunito',
+                            fontVariations: <ui.FontVariation>[
+                              ui.FontVariation('wght', 650),
+                            ],
+                            fontSize: 17,
+                            height: 1.22,
+                            color: AppColors.salviaTexto,
                           ),
                         ),
                       ),
@@ -200,7 +198,7 @@ class _CartaoDashboardState extends State<CartaoDashboard>
                           fontVariations: <ui.FontVariation>[
                             ui.FontVariation('wght', 800),
                           ],
-                          fontSize: 31,
+                          fontSize: 34,
                           height: 1.0,
                           letterSpacing: -0.8,
                           color: AppColors.salviaTexto,

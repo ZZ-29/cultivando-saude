@@ -227,17 +227,28 @@ class CartaoRemediosState extends State<CartaoRemedios> {
                             ),
                           ),
                           const SizedBox(width: 6),
-                          Text(
-                            _hora,
-                            style: TextStyle(
-                              fontFamily: 'Nunito',
-                              fontVariations: const <ui.FontVariation>[
-                                ui.FontVariation('wght', 700),
-                              ],
-                              fontSize: corpoHora,
-                              height: 1.0,
-                              letterSpacing: -1.0,
-                              color: corTexto,
+                          // O relógio tem largura máxima (5 dígitos) e encolhe
+                          // dentro dela: em tela estreita ou com a fonte do
+                          // sistema aumentada ele reduz em vez de estourar.
+                          ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: corpoHora * 3.1,
+                            ),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                _hora,
+                                style: TextStyle(
+                                  fontFamily: 'Nunito',
+                                  fontVariations: const <ui.FontVariation>[
+                                    ui.FontVariation('wght', 700),
+                                  ],
+                                  fontSize: corpoHora,
+                                  height: 1.0,
+                                  letterSpacing: -1.0,
+                                  color: corTexto,
+                                ),
+                              ),
                             ),
                           ),
                         ],
