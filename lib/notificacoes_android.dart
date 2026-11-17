@@ -85,10 +85,15 @@ class NotificacoesAndroid implements NotificacoesCompromissos {
       final String titulo = compromisso.tipo == TipoCompromisso.exame
           ? 'Exame $quando'
           : 'Consulta $quando';
+
+      // O corpo leva o **endereço**: o aviso tem que servir para sair de casa
+      // já sabendo para onde ir. Quem perde consulta é quem tem a hora e não
+      // tem o lugar.
       final String corpo = <String>[
         '${compromisso.titulo} — às $hora',
         if (compromisso.local.trim().isNotEmpty) compromisso.local.trim(),
-      ].join(' · ');
+        if (compromisso.temEndereco) '📍 ${compromisso.endereco.trim()}',
+      ].join('\n');
 
       await _plugin.zonedSchedule(
         id: idAviso(id, aviso.minutosAntes),

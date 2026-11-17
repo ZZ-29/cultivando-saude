@@ -86,9 +86,14 @@ class _AgendaPageState extends State<AgendaPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
+        duration: const Duration(seconds: 5),
         content: Text(
-          '${novo.titulo}: ${quandoResumido(novo.quando)} · '
-          'avisos 1h e 30min antes',
+          novo.temEndereco
+              ? '${novo.titulo}: ${quandoResumido(novo.quando)} · '
+                  'avisos 1h e 30min antes'
+              // Sem endereço é o caso que faz perder consulta: avisa na hora.
+              : 'Sem endereço. Cole o da clínica — é o que você vai precisar '
+                  'na hora de sair.',
         ),
       ),
     );
@@ -587,8 +592,8 @@ class _FormularioCompromissoState extends State<_FormularioCompromisso> {
               minLines: 1,
               style: const TextStyle(fontSize: 15.5),
               decoration: _decoracao(
-                'Endereço (opcional)',
-                'Rua, número, bairro — cole do WhatsApp',
+                'Endereço da clínica',
+                'Cole aqui o endereço que veio no WhatsApp',
               ),
             ),
             const SizedBox(height: 12),
