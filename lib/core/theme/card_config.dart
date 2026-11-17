@@ -2,18 +2,31 @@ import 'package:flutter/material.dart';
 
 /// **ARQUIVO DE PERSONALIZAÇÃO**
 ///
-/// Tudo o que se vê na Dashboard vem desta lista. Para mudar cor, ícone,
-/// título, texto, ordem ou rótulo do botão de um card, mexa aqui.
+/// Tudo o que se vê na Dashboard vem desta lista.
 ///
-/// Campos de cada card:
-///   id          — identificador curto (só para referência)
-///   titulo      — título grande do card
-///   texto       — a linha de resumo
-///   icone       — desenho no quadrado colorido
-///   cor         — cor da faixa, do quadrado e do brilho
-///   corBotao    — versão escura da cor, usada no botão (contraste AA)
-///   rotuloBotao — texto do botão
-///   tipo        — simples | boasVindas | sos
+/// **Paleta por significado + separação visual** (v21):
+///
+/// A regra não é só "cada card com seu significado": como a grade tem duas
+/// colunas, dois cards vizinhos (na vertical ou na horizontal) não podem
+/// compartilhar a mesma família de cor — senão a coluna inteira vira um
+/// borrão. Ordem final, lida de cima para baixo, coluna por coluna:
+///
+///   esquerda: vermelho · azul-aço · verde · amarelo · laranja
+///   direita:  lilás · azul · roxo · teal · terracota
+///
+///   vermelho intenso → emergência (universal) .. SOS
+///   lilás    → identidade, dado pessoal ........ Meus dados
+///   azul-aço → clínico, preciso ................ Pressão
+///   azul     → confiança, segurança ............ Remédios
+///   verde    → saúde, vitalidade ............... Vitaminas
+///   roxo     → organização, foco ............... Agenda
+///   amarelo  → nutrição, energia do alimento ... Plano Alimentar
+///   teal     → recuperação, equilíbrio ......... Reabilitação
+///   laranja  → energia, movimento .............. Esportes
+///   terracota → terra, aconchego, cuidado ...... Bem-Estar
+///
+/// Cada card tem DUAS cores: a viva (faixa, ícone, sombra) e a escura
+/// (`corBotao`), que garante texto branco com contraste AA.
 enum TipoCard { simples, boasVindas, sos }
 
 class CardConfig {
@@ -36,6 +49,9 @@ class CardConfig {
   final Color corBotao;
   final String rotuloBotao;
   final TipoCard tipo;
+
+  /// Enfeite de fundo do card (emoji grande e apagado). Cada tema tem o seu;
+  /// aparece atrás do conteúdo, sem receber toque.
 }
 
 /// Os cards da Dashboard, **na ordem em que aparecem**.
@@ -43,23 +59,20 @@ class CardConfig {
 /// Ordem definida pelo usuário em 11/11:
 ///   1 Boas-vindas · 2 SOS · 3 Pressão · 4 Remédios · 5 Vitaminas ·
 ///   6 Agenda · 7 Plano Alimentar · 8 Reabilitação · 9 Esportes · 10 Bem-Estar
-///
-/// O card **Exames** não aparece como card próprio: ele passou a ser coberto
-/// pela **Agenda (Consultas e Exames)**. Se um dia quiser separar de novo, o
-/// bloco pronto está no fim deste arquivo, comentado.
 const List<CardConfig> cardsDoDashboard = <CardConfig>[
-  // 1 — Boas-vindas. O texto (data de hoje) é preenchido pelo widget.
+  // 1 — Cabeçalho. Mostra o NOME DO APP; o "Olá, <nome>" só aparece depois
+  // que a pessoa se cadastrar (o widget recebe o nome por parâmetro).
   CardConfig(
     id: 'boas_vindas',
-    titulo: 'Olá, Maria',
-    texto: '',
+    titulo: 'Cultivando Saúde',
+    texto: 'Cuidar é preservar a vida',
     icone: Icons.wb_sunny_rounded,
     cor: Color(0xFFFFB300),
     corBotao: Color(0xFF8A6A00),
     tipo: TipoCard.boasVindas,
   ),
 
-  // 2 — SOS: só o botão vermelho gigante.
+  // 2 — SOS · vermelho intenso (emergência é vermelho no mundo inteiro)
   CardConfig(
     id: 'sos',
     titulo: 'Emergência',
@@ -71,107 +84,94 @@ const List<CardConfig> cardsDoDashboard = <CardConfig>[
     tipo: TipoCard.sos,
   ),
 
-  // 3 — Pressão
+  // 3 — Pressão · azul-aço (clínico, aparelho de pressão) — 10:1 no botão
   CardConfig(
     id: 'pressao',
     titulo: 'Pressão',
     texto: 'Última: 120/80',
     icone: Icons.monitor_heart_rounded,
-    cor: Color(0xFFE53935),
-    corBotao: Color(0xFFB71C1C),
+    cor: Color(0xFF455A64),
+    corBotao: Color(0xFF263238),
     rotuloBotao: 'Registrar pressão',
   ),
 
-  // 4 — Remédios
+  // 4 — Remédios · azul (confiança, segurança) — 7,6:1 no botão
   CardConfig(
     id: 'remedios',
     titulo: 'Remédios',
     texto: '2 de 4 tomados',
     icone: Icons.medication_rounded,
-    cor: Color(0xFFFF007F),
-    corBotao: Color(0xFFB0005A),
+    cor: Color(0xFF2962FF),
+    corBotao: Color(0xFF1B45C9),
     rotuloBotao: 'Ver remédios',
   ),
 
-  // 5 — Vitaminas
+  // 5 — Vitaminas · verde (saúde, vitalidade) — 6,5:1 no botão
   CardConfig(
     id: 'vitaminas',
     titulo: 'Vitaminas',
     texto: '1 de 2 tomadas',
-    // Ícone de folha: o spa ficou reservado ao Bem-Estar.
     icone: Icons.eco_rounded,
-    cor: Color(0xFF8E24AA),
-    corBotao: Color(0xFF6A1B9A),
+    cor: Color(0xFF2E9E4F),
+    corBotao: Color(0xFF1B6B34),
     rotuloBotao: 'Ver vitaminas',
   ),
 
-  // 6 — Agenda
+  // 6 — Agenda · índigo (organização, planejamento) — 9:1 no botão
+  //
+  // Sem marca-d'água: o emoji de calendário vira um "July 17" em inglês no
+  // Windows e poluía o card. Aqui só as frases.
   CardConfig(
     id: 'agenda',
     titulo: 'Agenda',
-    texto: 'Dr. Silva · Amanhã 10h',
+    texto: 'Amanhã 10h',
     icone: Icons.calendar_month_rounded,
-    cor: Color(0xFFFF5E00),
-    corBotao: Color(0xFFB33F00),
+    cor: Color(0xFF7B1FA2),
+    corBotao: Color(0xFF4A148C),
     rotuloBotao: 'Ver agenda',
   ),
 
-  // 7 — Plano Alimentar
+  // 7 — Plano Alimentar · verde-lima (nutrição, frescor) — 5,5:1 no botão
   CardConfig(
     id: 'alimentacao',
     titulo: 'Plano Alimentar',
     texto: 'Orientação Nutricional',
     icone: Icons.restaurant_rounded,
-    cor: Color(0xFF43A047),
-    corBotao: Color(0xFF2E7D32),
+    cor: Color(0xFFC9A227),
+    corBotao: Color(0xFF7A5F00),
     rotuloBotao: 'Ver Plano',
   ),
 
-  // 8 — Reabilitação (novo): clínicas e fisioterapia
+  // 8 — Reabilitação · teal (recuperação, equilíbrio) — 8:1 no botão
   CardConfig(
     id: 'reabilitacao',
     titulo: 'Reabilitação',
     texto: 'Clínicas e Fisioterapia',
     icone: Icons.healing_rounded,
-    cor: Color(0xFF1E88E5),
-    corBotao: Color(0xFF0D47A1),
+    cor: Color(0xFF00897B),
+    corBotao: Color(0xFF00564D),
     rotuloBotao: 'Ver Clínicas',
   ),
 
-  // 9 — Esportes
+  // 9 — Esportes · laranja (energia, movimento) — 5,9:1 no botão
   CardConfig(
     id: 'esportes',
     titulo: 'Esportes',
     texto: 'Corrida e Caminhada',
     icone: Icons.directions_run_rounded,
-    cor: Color(0xFFFFC300),
-    corBotao: Color(0xFF8A6A00),
+    cor: Color(0xFFFB8C00),
+    corBotao: Color(0xFFA85A00),
     rotuloBotao: 'Ver Esportes',
   ),
 
-  // 10 — Bem-Estar
+  // 10 — Bem-Estar · verde-sálvia (calma, natureza, cuidado) — 8:1 no botão
   CardConfig(
     id: 'bem_estar',
     titulo: 'Bem-Estar',
-    texto: 'Academia, Pilates e Massagens',
+    texto: 'Pilates e massagens',
     icone: Icons.spa_rounded,
-    cor: Color(0xFF9C27B0),
-    corBotao: Color(0xFF6A1B9A),
+    cor: Color(0xFFB07D5A),
+    corBotao: Color(0xFF6D4C34),
     rotuloBotao: 'Ver Bem-Estar',
   ),
 ];
-
-// ---------------------------------------------------------------------------
-// Card removido nesta versão. Para trazer de volta, descomente o bloco e
-// acrescente-o na posição desejada da lista acima.
-//
-//   CardConfig(
-//     id: 'exames',
-//     titulo: 'Exames',
-//     texto: 'Último: Sangue · 10/11',
-//     icone: Icons.biotech_rounded,
-//     cor: Color(0xFF1E88E5),
-//     corBotao: Color(0xFF1565C0),
-//     rotuloBotao: 'Ver exames',
-//   ),
-// ---------------------------------------------------------------------------

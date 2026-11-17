@@ -1,15 +1,72 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/navigation/app_shell.dart';
 import 'core/theme/app_colors.dart';
+import 'features/agenda/data/agenda_repositorio.dart';
+import 'features/agenda/data/agenda_sqlite.dart';
+import 'features/exams/data/exames_repositorio.dart';
+import 'features/exams/data/exames_sqlite.dart';
+import 'features/medications/data/repositorio.dart';
+import 'features/medications/data/repositorio_sqlite.dart';
+import 'features/nutrition/data/plano_repositorio.dart';
+import 'features/nutrition/data/plano_sqlite.dart';
+import 'features/patients/data/pacientes_repositorio.dart';
+import 'features/patients/data/pacientes_sqlite.dart';
+import 'features/pressure/data/pressao_repositorio.dart';
+import 'features/pressure/data/pressao_sqlite.dart';
+import 'features/profile/data/perfil_repositorio.dart';
+import 'features/profile/data/perfil_repositorio_sqlite.dart';
+import 'features/rehab/data/reabilitacao_repositorio.dart';
+import 'features/rehab/data/reabilitacao_sqlite.dart';
+import 'features/safety/data/contatos_repositorio.dart';
+import 'features/safety/data/contatos_sqlite.dart';
+import 'features/sports/data/atividades_repositorio.dart';
+import 'features/sports/data/atividades_sqlite.dart';
+import 'features/vitamins/data/vitaminas_repositorio.dart';
+import 'features/vitamins/data/vitaminas_sqlite.dart';
+import 'features/wellness/data/bem_estar_repositorio.dart';
+import 'features/wellness/data/bem_estar_sqlite.dart';
 
-/// Cultivando Saúde — casca visual (v10).
+/// Cultivando Saúde — casca visual + módulo de remédios.
 ///
-/// Esta versão NÃO tem banco, alarme nem navegação funcional: é só a tela
-/// para o usuário decidir o layout dos cards.
+/// **Responsividade (v12):** o app é desenhado para celular. No desktop, o
+/// conteúdo inteiro fica centralizado numa coluna de no máximo 600 px, como um
+/// "celular virtual" no meio da janela. No celular a largura já é menor que
+/// 600, então nada muda.
 ///
-/// Para personalizar: `lib/core/theme/card_config.dart`.
-void main() => runApp(const CultivandoSaudeApp());
+/// A moldura é aplicada no `builder` do MaterialApp — assim vale para TODAS as
+/// rotas (dashboard, lista, formulário, detalhe), sem repetir código em cada
+/// tela.
+///
+/// **Armazenamento:** no Android, SQLite (remédios e perfil). Na web/preview,
+/// memória. A escolha acontece aqui, uma vez — as telas só conhecem as
+/// interfaces dos repositórios.
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  if (!kIsWeb) {
+    usarPacientesRepo(PacientesSqlite());
+    usarRepositorio(RepoSqlite());
+    usarPerfilRepo(PerfilSqlite());
+    usarPressaoRepo(PressaoSqlite());
+    usarAgendaRepo(AgendaSqlite());
+    usarContatosRepo(ContatosSqlite());
+    usarVitaminasRepo(VitaminasSqlite());
+    usarAtividadesRepo(AtividadesSqlite());
+    usarBemEstarRepo(BemEstarSqlite());
+    usarPlanoRepo(PlanoSqlite());
+    usarExamesRepo(ExamesSqlite());
+    usarReabilitacaoRepo(ReabilitacaoSqlite());
+  }
+  // Garante que exista um paciente ativo antes da primeira tela: os nomes de
+  // arquivo do banco dependem dele.
+  await garantirPacienteAtual();
+  runApp(const CultivandoSaudeApp());
+}
+
+/// Largura máxima do conteúdo em telas grandes.
+const double kLarguraMaximaConteudo = 600;
 
 class CultivandoSaudeApp extends StatelessWidget {
   const CultivandoSaudeApp({super.key});
@@ -18,12 +75,21 @@ class CultivandoSaudeApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Cultivando Saúde',
+      locale: const Locale('pt', 'BR'),
+      supportedLocales: const <Locale>[Locale('pt', 'BR')],
+      localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: 'Roboto',
         scaffoldBackgroundColor: AppColors.fundo,
-        splashFactory: NoSplash.splashFactory,
+        // Nada de NoSplash: o ripple é justamente o retorno de toque.
+        splashColor: Colors.white.withValues(alpha: 0.35),
+        highlightColor: Colors.white.withValues(alpha: 0.10),
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFFFF007F),
           brightness: Brightness.light,
@@ -37,6 +103,20 @@ class CultivandoSaudeApp extends StatelessWidget {
           behavior: SnackBarBehavior.floating,
         ),
       ),
+      builder: (BuildContext context, Widget? child) {
+        // Fundo igual ao do app preenche a janela; o conteúdo fica centrado.
+        return ColoredBox(
+          color: AppColors.fundo,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: kLarguraMaximaConteudo,
+              ),
+              child: child ?? const SizedBox.shrink(),
+            ),
+          ),
+        );
+      },
       home: const AppShell(),
     );
   }

@@ -184,6 +184,9 @@ class Medicamento {
     this.cicloPausa,
     required this.fases,
     required this.criadoEm,
+    this.prescricao,
+    this.medico,
+    this.crm,
   });
 
   final int? id;
@@ -201,6 +204,19 @@ class Medicamento {
   final List<Fase> fases;
   final DateTime criadoEm;
 
+  /// Foto da prescrição: caminho do arquivo no celular (ou dado embutido).
+  /// `null` = sem anexo. Serve para consultar a receita depois, no detalhe.
+  final String? prescricao;
+
+  bool get temPrescricao => (prescricao ?? '').trim().isNotEmpty;
+
+  /// Quem prescreveu (nome) e o registro profissional. Ficam junto da foto
+  /// da receita: é o que dá segurança quando outra pessoa lê o remédio.
+  final String? medico;
+  final String? crm;
+
+  bool get temMedico => (medico ?? '').trim().isNotEmpty;
+
   bool get temFases => fases.isNotEmpty;
 
   /// Data em que o tratamento começou (início da primeira fase).
@@ -216,6 +232,9 @@ class Medicamento {
         'cicloPausa': cicloPausa,
         'fases': fases.map((Fase f) => f.paraJson()).toList(),
         'criadoEm': criadoEm.toIso8601String(),
+        'prescricao': prescricao,
+        'medico': medico,
+        'crm': crm,
       };
 
   factory Medicamento.doJson(Map<String, Object?> j) {
@@ -240,10 +259,14 @@ class Medicamento {
       fases: fases,
       criadoEm: DateTime.tryParse((j['criadoEm'] as String?) ?? '') ??
           DateTime.now(),
+      prescricao: j['prescricao'] as String?,
+      medico: j['medico'] as String?,
+      crm: j['crm'] as String?,
     );
   }
 
-  Medicamento copiarCom({int? id, List<Fase>? fases}) => Medicamento(
+  Medicamento copiarCom({int? id, List<Fase>? fases, String? prescricao, String? medico, String? crm}) =>
+      Medicamento(
         id: id ?? this.id,
         nome: nome,
         dosagem: dosagem,
@@ -253,6 +276,9 @@ class Medicamento {
         cicloPausa: cicloPausa,
         fases: fases ?? this.fases,
         criadoEm: criadoEm,
+        prescricao: prescricao ?? this.prescricao,
+        medico: medico ?? this.medico,
+        crm: crm ?? this.crm,
       );
 }
 

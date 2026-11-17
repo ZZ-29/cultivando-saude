@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../data/captura_prescricao.dart';
 import '../data/repositorio.dart';
 import '../domain/medicamento.dart';
 
-/// Cadastro de remédio com as regras do Hermes: duração, frequência e fase
-/// inicial. Interface simples (texto + chips), sem enfeite.
+/// Cadastro de remédio, no padrão visual da Dashboard.
+///
+/// A lógica é a mesma de antes (regras do Hermes: duração, frequência e fase
+/// inicial). O que mudou foi a casca: cabeçalho próprio, campos em cartões
+/// arredondados, chips na cor do módulo e botão salvar grande.
 class FormularioRemedioPage extends StatefulWidget {
   const FormularioRemedioPage({super.key});
 
@@ -13,6 +18,10 @@ class FormularioRemedioPage extends StatefulWidget {
 }
 
 class _FormularioRemedioPageState extends State<FormularioRemedioPage> {
+  static const Color _azul = Color(0xFF2962FF);
+  static const Color _azulEscuro = Color(0xFF1B45C9);
+  static const Color _verde = Color(0xFF2E9E4F);
+
   final TextEditingController _nome = TextEditingController();
   final TextEditingController _dose = TextEditingController();
   final TextEditingController _dias = TextEditingController(text: '7');
@@ -32,6 +41,9 @@ class _FormularioRemedioPageState extends State<FormularioRemedioPage> {
   int _diaSemana = 1;
   int _diaMes = 1;
 
+  String? _prescricao;
+  final TextEditingController _medico = TextEditingController();
+  final TextEditingController _crm = TextEditingController();
   String? _erro;
 
   @override
@@ -43,6 +55,8 @@ class _FormularioRemedioPageState extends State<FormularioRemedioPage> {
     _cicloPausa.dispose();
     _intervaloCtrl.dispose();
     _diaMesCtrl.dispose();
+    _medico.dispose();
+    _crm.dispose();
     super.dispose();
   }
 
@@ -166,6 +180,9 @@ class _FormularioRemedioPageState extends State<FormularioRemedioPage> {
       cicloPausa: cicloPausa,
       fases: <Fase>[fase],
       criadoEm: DateTime.now(),
+      prescricao: _prescricao,
+      medico: _medico.text.trim().isEmpty ? null : _medico.text.trim(),
+      crm: _crm.text.trim().isEmpty ? null : _crm.text.trim(),
     );
 
     try {
@@ -177,249 +194,399 @@ class _FormularioRemedioPageState extends State<FormularioRemedioPage> {
     }
   }
 
+  // ------------------------------------------------------------------ UI --
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Novo remédio')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: <Widget>[
-          TextField(
-            controller: _nome,
-            decoration: const InputDecoration(
-              labelText: 'Nome do remédio',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _dose,
-            decoration: const InputDecoration(
-              labelText: 'Dosagem (ex.: 50 mg)',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 20),
+      backgroundColor: AppColors.fundo,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            _cabecalho(),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+                children: <Widget>[
+                  // --- Identificação -------------------------------------
+                  _Bloco(
+                    titulo: 'O remédio',
+                    cor: _azul,
+                    filho: Column(
+                      children: <Widget>[
+                        _campo(
+                          controller: _nome,
+                          rotulo: 'Nome do remédio',
+                          dica: 'Ex.: Losartana',
+                          icone: Icons.medication_rounded,
+                        ),
+                        const SizedBox(height: 10),
+                        _campo(
+                          controller: _dose,
+                          rotulo: 'Dosagem',
+                          dica: 'Ex.: 50 mg',
+                          icone: Icons.straighten_rounded,
+                        ),
+                      ],
+                    ),
+                  ),
 
-          // --- Duração -----------------------------------------------------
-          const _Rotulo('Duração do tratamento'),
-          Wrap(
-            spacing: 8,
-            children: <Widget>[
-              _chipDuracao(TipoDuracao.continuo, 'Contínuo'),
-              _chipDuracao(TipoDuracao.temporario, 'Temporário'),
-              _chipDuracao(TipoDuracao.ciclo, 'Ciclo'),
-              _chipDuracao(TipoDuracao.sos, 'SOS'),
-            ],
-          ),
-          if (_duracao == TipoDuracao.temporario) ...<Widget>[
-            const SizedBox(height: 12),
-            TextField(
-              controller: _dias,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Duração em dias',
-                border: OutlineInputBorder(),
+                  // --- Duração -------------------------------------------
+                  _Bloco(
+                    titulo: 'Duração do tratamento',
+                    cor: _azul,
+                    filho: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: <Widget>[
+                            _chipDuracao(TipoDuracao.continuo, 'Contínuo'),
+                            _chipDuracao(TipoDuracao.temporario, 'Temporário'),
+                            _chipDuracao(TipoDuracao.ciclo, 'Ciclo'),
+                            _chipDuracao(TipoDuracao.sos, 'SOS'),
+                          ],
+                        ),
+                        if (_duracao == TipoDuracao.temporario) ...<Widget>[
+                          const SizedBox(height: 12),
+                          _campo(
+                            controller: _dias,
+                            rotulo: 'Duração em dias',
+                            numero: true,
+                          ),
+                        ],
+                        if (_duracao == TipoDuracao.ciclo) ...<Widget>[
+                          const SizedBox(height: 12),
+                          Row(
+                            children: <Widget>[
+                              Expanded(
+                                child: _campo(
+                                  controller: _cicloDias,
+                                  rotulo: 'Dias tomando',
+                                  numero: true,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: _campo(
+                                  controller: _cicloPausa,
+                                  rotulo: 'Dias de pausa',
+                                  numero: true,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+
+                  // --- Frequência ----------------------------------------
+                  _Bloco(
+                    titulo: 'Frequência',
+                    cor: _azul,
+                    filho: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        if (_duracao == TipoDuracao.sos)
+                          Text(
+                            'SOS: não agenda dose. A pessoa registra quando '
+                            'tomar.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              height: 1.3,
+                              color: AppColors.textoSuave,
+                            ),
+                          )
+                        else ...<Widget>[
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            children: <Widget>[
+                              _chipFreq(
+                                  TipoFrequencia.umaAoDia, '1x ao dia'),
+                              _chipFreq(
+                                  TipoFrequencia.variasAoDia, 'Múltiplas'),
+                              _chipFreq(TipoFrequencia.intervaloHoras,
+                                  'De X em X h'),
+                              _chipFreq(
+                                  TipoFrequencia.diasSemana, 'Dias da semana'),
+                              _chipFreq(
+                                  TipoFrequencia.semanal, '1x por semana'),
+                              _chipFreq(TipoFrequencia.mensal, '1x por mês'),
+                            ],
+                          ),
+                          ..._camposDaFrequencia(),
+                        ],
+                      ],
+                    ),
+                  ),
+
+                  // --- Prescrição ---------------------------------------
+                  _Bloco(
+                    titulo: 'Prescrição',
+                    cor: _azul,
+                    filho: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          _prescricao == null
+                              ? 'Fotografe a receita para consultar depois, '
+                                  'quando quiser.'
+                              : 'Foto anexada. Ela fica salva com este '
+                                  'remédio, no celular.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            height: 1.3,
+                            color: AppColors.textoSuave,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          height: 48,
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: _anexarPrescricao,
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: AppColors.card,
+                              foregroundColor: _azulEscuro,
+                              side: BorderSide(
+                                color: _azul.withValues(alpha: 0.35),
+                                width: 1.1,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            icon: Icon(
+                              _prescricao == null
+                                  ? Icons.photo_camera_rounded
+                                  : Icons.check_circle_rounded,
+                              size: 19,
+                            ),
+                            label: Text(
+                              _prescricao == null
+                                  ? 'Tirar foto da prescrição'
+                                  : 'Trocar foto',
+                              style: const TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (_prescricao != null)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                              onPressed: () =>
+                                  setState(() => _prescricao = null),
+                              style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xFFB71C1C),
+                              ),
+                              icon: const Icon(
+                                  Icons.delete_outline_rounded,
+                                  size: 17),
+                              label: const Text(
+                                'Remover foto',
+                                style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 10),
+                        _campo(
+                          controller: _medico,
+                          rotulo: 'Médico que prescreveu',
+                          dica: 'Ex.: Dra. Helena Souza',
+                          icone: Icons.badge_rounded,
+                        ),
+                        const SizedBox(height: 10),
+                        _campo(
+                          controller: _crm,
+                          rotulo: 'CRM (opcional)',
+                          dica: 'Ex.: CRM-SP 123456',
+                          icone: Icons.verified_rounded,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  if (_erro != null) ...<Widget>[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE53935).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: const Color(0xFFE53935).withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Row(
+                        children: <Widget>[
+                          const Icon(Icons.error_outline_rounded,
+                              color: Color(0xFFB71C1C), size: 20),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _erro!,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFFB71C1C),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      onPressed: _salvar,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _verde,
+                        foregroundColor: Colors.white,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      icon: const Icon(Icons.check_rounded, size: 22),
+                      label: const Text(
+                        'Salvar remédio',
+                        style: TextStyle(
+                          fontFamily: 'Nunito',
+                          fontVariations: <FontVariation>[
+                            FontVariation('wght', 800),
+                          ],
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
-          if (_duracao == TipoDuracao.ciclo) ...<Widget>[
-            const SizedBox(height: 12),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: TextField(
-                    controller: _cicloDias,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Dias tomando',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _cicloPausa,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Dias de pausa',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-          const SizedBox(height: 20),
+        ),
+      ),
+    );
+  }
 
-          // --- Frequência --------------------------------------------------
-          const _Rotulo('Frequência'),
-          if (_duracao == TipoDuracao.sos)
-            const Text(
-              'SOS: não agenda dose. A pessoa registra quando tomar.',
-              style: TextStyle(fontSize: 16),
-            )
-          else
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: <Widget>[
-                _chipFreq(TipoFrequencia.umaAoDia, '1x ao dia'),
-                _chipFreq(TipoFrequencia.variasAoDia, 'Múltiplas'),
-                _chipFreq(TipoFrequencia.intervaloHoras, 'De X em X h'),
-                _chipFreq(TipoFrequencia.diasSemana, 'Dias da semana'),
-                _chipFreq(TipoFrequencia.semanal, '1x por semana'),
-                _chipFreq(TipoFrequencia.mensal, '1x por mês'),
-              ],
-            ),
-          const SizedBox(height: 12),
-          ..._camposDaFrequencia(),
-
-          if (_erro != null) ...<Widget>[
-            const SizedBox(height: 16),
-            Text(
-              _erro!,
-              style: const TextStyle(fontSize: 16, color: Color(0xFFB00020)),
-            ),
-          ],
-
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 52,
-            child: FilledButton(
-              onPressed: _salvar,
-              child: const Text('Salvar', style: TextStyle(fontSize: 18)),
+  Widget _cabecalho() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 16, 4),
+      child: Row(
+        children: <Widget>[
+          IconButton(
+            tooltip: 'Voltar',
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: const Icon(Icons.arrow_back_rounded),
+            color: AppColors.texto,
+          ),
+          const SizedBox(width: 2),
+          const Expanded(
+            child: Text(
+              'Novo remédio',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Nunito',
+                fontVariations: <FontVariation>[FontVariation('wght', 700)],
+                fontSize: 24,
+                height: 1.1,
+                color: AppColors.texto,
+              ),
             ),
           ),
-          const SizedBox(height: 40),
         ],
       ),
     );
   }
 
-  List<Widget> _camposDaFrequencia() {
-    if (_duracao == TipoDuracao.sos) return const <Widget>[];
+  // ---------------------------------------------------------------- campos --
 
-    switch (_freq) {
-      case TipoFrequencia.umaAoDia:
-        return <Widget>[_linhaHorario(0, 'Horário')];
-
-      case TipoFrequencia.variasAoDia:
-        return <Widget>[
-          ...List<Widget>.generate(
-            _horarios.length,
-            (int i) => _linhaHorario(i, 'Horário ${i + 1}'),
+  /// Abre a câmera (no Android) ou explica que só existe lá.
+  Future<void> _anexarPrescricao() async {
+    if (!capturaPrescricao.disponivel) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'A foto da prescrição entra na próxima versão do app. Por '
+            'enquanto, anote o médico e o CRM nos campos abaixo.',
           ),
-          TextButton.icon(
-            onPressed: () => setState(
-              () => _horarios.add(const TimeOfDay(hour: 20, minute: 0)),
-            ),
-            icon: const Icon(Icons.add),
-            label: const Text('Adicionar horário'),
-          ),
-        ];
-
-      case TipoFrequencia.intervaloHoras:
-        return <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: TextField(
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Intervalo (horas)',
-                    border: OutlineInputBorder(),
-                  ),
-                  controller: _intervaloCtrl,
-                  onChanged: (String v) =>
-                      _intervalo = int.tryParse(v) ?? _intervalo,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _escolherPrimeira,
-                  child: Text('1ª dose: ${_hh(_primeira)}'),
-                ),
-              ),
-            ],
-          ),
-        ];
-
-      case TipoFrequencia.diasSemana:
-        return <Widget>[
-          Wrap(
-            spacing: 6,
-            children: List<Widget>.generate(7, (int i) {
-              final int dia = i + 1;
-              return FilterChip(
-                label: Text(_nomeDia(dia)),
-                selected: _diasSemana.contains(dia),
-                onSelected: (bool marcado) {
-                  setState(() {
-                    if (marcado) {
-                      _diasSemana.add(dia);
-                    } else {
-                      _diasSemana.remove(dia);
-                    }
-                  });
-                },
-              );
-            }),
-          ),
-          _linhaHorario(0, 'Horário'),
-        ];
-
-      case TipoFrequencia.semanal:
-        return <Widget>[
-          Wrap(
-            spacing: 6,
-            children: List<Widget>.generate(7, (int i) {
-              final int dia = i + 1;
-              return ChoiceChip(
-                label: Text(_nomeDia(dia)),
-                selected: _diaSemana == dia,
-                onSelected: (bool _) => setState(() => _diaSemana = dia),
-              );
-            }),
-          ),
-          _linhaHorario(0, 'Horário'),
-        ];
-
-      case TipoFrequencia.mensal:
-        return <Widget>[
-          TextField(
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Dia do mês (1 a 31)',
-              border: OutlineInputBorder(),
-            ),
-            controller: _diaMesCtrl,
-            onChanged: (String v) => _diaMes = int.tryParse(v) ?? _diaMes,
-          ),
-          _linhaHorario(0, 'Horário'),
-        ];
-
-      case TipoFrequencia.sos:
-        return const <Widget>[];
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
     }
+
+    final String? caminho = await capturaPrescricao.capturar();
+    if (caminho == null || !mounted) return;
+    setState(() => _prescricao = caminho);
   }
 
-  Widget _linhaHorario(int indice, String rotulo) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: OutlinedButton(
-        onPressed: () => _escolherHorario(indice),
-        child: Text('$rotulo: ${_hh(_horarios[indice])}'),
+  /// Campo com borda arredondada, fundo branco e ícone.
+  Widget _campo({
+    required TextEditingController controller,
+    required String rotulo,
+    String? dica,
+    IconData? icone,
+    bool numero = false,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: numero ? TextInputType.number : TextInputType.text,
+      style: const TextStyle(fontSize: 16, color: AppColors.texto),
+      decoration: InputDecoration(
+        labelText: rotulo,
+        hintText: dica,
+        filled: true,
+        fillColor: AppColors.card,
+        prefixIcon: icone == null
+            ? null
+            : Icon(icone, color: _azulEscuro, size: 20),
+        labelStyle: TextStyle(color: _azulEscuro.withValues(alpha: 0.75)),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(
+            color: _azul.withValues(alpha: 0.30),
+            width: 1.1,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: _azul, width: 1.8),
+        ),
       ),
     );
   }
+
+  // ------------------------------------------------------------- controles --
 
   Widget _chipDuracao(TipoDuracao tipo, String rotulo) {
     return ChoiceChip(
       label: Text(rotulo),
       selected: _duracao == tipo,
+      labelStyle: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        color: _duracao == tipo ? Colors.white : _azulEscuro,
+      ),
+      selectedColor: _azul,
+      backgroundColor: AppColors.card,
+      side: BorderSide(color: _azul.withValues(alpha: 0.30)),
       onSelected: (bool _) {
         setState(() {
           _duracao = tipo;
@@ -438,11 +605,223 @@ class _FormularioRemedioPageState extends State<FormularioRemedioPage> {
     return ChoiceChip(
       label: Text(rotulo),
       selected: _freq == tipo,
+      labelStyle: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        color: _freq == tipo ? Colors.white : _azulEscuro,
+      ),
+      selectedColor: _azul,
+      backgroundColor: AppColors.card,
+      side: BorderSide(color: _azul.withValues(alpha: 0.30)),
       onSelected: (bool _) => setState(() {
         _freq = tipo;
         _erro = null;
       }),
     );
+  }
+
+  /// Botão de horário, no formato de "pílula" branca com borda azul.
+  Widget _botaoHorario(String rotulo, VoidCallback aoTocar) {
+    return SizedBox(
+      height: 48,
+      child: OutlinedButton.icon(
+        onPressed: aoTocar,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: AppColors.card,
+          foregroundColor: _azulEscuro,
+          side: BorderSide(color: _azul.withValues(alpha: 0.35), width: 1.1),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+        icon: const Icon(Icons.schedule_rounded, size: 19),
+        label: Text(
+          rotulo,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _camposDaFrequencia() {
+    if (_duracao == TipoDuracao.sos) return const <Widget>[];
+
+    switch (_freq) {
+      case TipoFrequencia.umaAoDia:
+        return <Widget>[
+          const SizedBox(height: 12),
+          _botaoHorario('Horário: ${_hh(_horarios[0])}',
+              () => _escolherHorario(0)),
+        ];
+
+      case TipoFrequencia.variasAoDia:
+        return <Widget>[
+          const SizedBox(height: 12),
+          ...List<Widget>.generate(
+            _horarios.length,
+            (int i) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _botaoHorario(
+                'Horário ${i + 1}: ${_hh(_horarios[i])}',
+                () => _escolherHorario(i),
+              ),
+            ),
+          ),
+          TextButton.icon(
+            onPressed: () => setState(
+              () => _horarios.add(const TimeOfDay(hour: 20, minute: 0)),
+            ),
+            icon: const Icon(Icons.add_rounded, size: 20),
+            label: const Text('Adicionar horário',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+            style: TextButton.styleFrom(foregroundColor: _azul),
+          ),
+        ];
+
+      case TipoFrequencia.intervaloHoras:
+        return <Widget>[
+          const SizedBox(height: 12),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: TextField(
+                  keyboardType: TextInputType.number,
+                  controller: _intervaloCtrl,
+                  onChanged: (String v) =>
+                      _intervalo = int.tryParse(v) ?? _intervalo,
+                  style: const TextStyle(fontSize: 16),
+                  decoration: InputDecoration(
+                    labelText: 'Intervalo (horas)',
+                    filled: true,
+                    fillColor: AppColors.card,
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 14),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                        color: _azul.withValues(alpha: 0.30),
+                        width: 1.1,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: _azul, width: 1.8),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _botaoHorario(
+                  '1ª: ${_hh(_primeira)}',
+                  _escolherPrimeira,
+                ),
+              ),
+            ],
+          ),
+        ];
+
+      case TipoFrequencia.diasSemana:
+        return <Widget>[
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: List<Widget>.generate(7, (int i) {
+              final int dia = i + 1;
+              final bool marcado = _diasSemana.contains(dia);
+              return FilterChip(
+                label: Text(_nomeDia(dia)),
+                selected: marcado,
+                labelStyle: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: marcado ? Colors.white : _azulEscuro,
+                ),
+                selectedColor: _azul,
+                backgroundColor: AppColors.card,
+                side: BorderSide(color: _azul.withValues(alpha: 0.30)),
+                onSelected: (bool escolhido) {
+                  setState(() {
+                    if (escolhido) {
+                      _diasSemana.add(dia);
+                    } else {
+                      _diasSemana.remove(dia);
+                    }
+                  });
+                },
+              );
+            }),
+          ),
+          const SizedBox(height: 10),
+          _botaoHorario('Horário: ${_hh(_horarios[0])}',
+              () => _escolherHorario(0)),
+        ];
+
+      case TipoFrequencia.semanal:
+        return <Widget>[
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: List<Widget>.generate(7, (int i) {
+              final int dia = i + 1;
+              final bool marcado = _diaSemana == dia;
+              return ChoiceChip(
+                label: Text(_nomeDia(dia)),
+                selected: marcado,
+                labelStyle: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: marcado ? Colors.white : _azulEscuro,
+                ),
+                selectedColor: _azul,
+                backgroundColor: AppColors.card,
+                side: BorderSide(color: _azul.withValues(alpha: 0.30)),
+                onSelected: (bool _) => setState(() => _diaSemana = dia),
+              );
+            }),
+          ),
+          const SizedBox(height: 10),
+          _botaoHorario('Horário: ${_hh(_horarios[0])}',
+              () => _escolherHorario(0)),
+        ];
+
+      case TipoFrequencia.mensal:
+        return <Widget>[
+          const SizedBox(height: 12),
+          TextField(
+            keyboardType: TextInputType.number,
+            controller: _diaMesCtrl,
+            onChanged: (String v) => _diaMes = int.tryParse(v) ?? _diaMes,
+            style: const TextStyle(fontSize: 16),
+            decoration: InputDecoration(
+              labelText: 'Dia do mês (1 a 31)',
+              filled: true,
+              fillColor: AppColors.card,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: _azul.withValues(alpha: 0.30),
+                  width: 1.1,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: _azul, width: 1.8),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          _botaoHorario('Horário: ${_hh(_horarios[0])}',
+              () => _escolherHorario(0)),
+        ];
+
+      case TipoFrequencia.sos:
+        return const <Widget>[];
+    }
   }
 
   static String _nomeDia(int dia) {
@@ -459,18 +838,69 @@ class _FormularioRemedioPageState extends State<FormularioRemedioPage> {
   }
 }
 
-class _Rotulo extends StatelessWidget {
-  const _Rotulo(this.texto);
+/// Cartão de seção: título colorido + conteúdo sobre fundo branco.
+class _Bloco extends StatelessWidget {
+  const _Bloco({
+    required this.titulo,
+    required this.cor,
+    required this.filho,
+  });
 
-  final String texto;
+  final String titulo;
+  final Color cor;
+  final Widget filho;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        texto,
-        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[
+            AppColors.tinta(cor, 0.07),
+            AppColors.tinta(cor, 0.14),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: cor.withValues(alpha: 0.26), width: 1.1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: cor,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  titulo,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Nunito',
+                    fontVariations: const <FontVariation>[
+                      FontVariation('wght', 700),
+                    ],
+                    fontSize: 14.5,
+                    color: cor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          filho,
+        ],
       ),
     );
   }
