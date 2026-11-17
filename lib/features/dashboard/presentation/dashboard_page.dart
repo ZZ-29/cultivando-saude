@@ -12,6 +12,9 @@ import '../../../core/widgets/toque_escala.dart';
 import '../../agenda/data/agenda_repositorio.dart';
 import '../../agenda/domain/compromisso.dart';
 import '../../agenda/presentation/agenda_page.dart';
+import '../../exams/data/exames_repositorio.dart';
+import '../../exams/domain/exame.dart';
+import '../../exams/presentation/exames_page.dart';
 import '../../medications/presentation/remedios_page.dart';
 import '../../nutrition/data/plano_repositorio.dart';
 import '../../nutrition/domain/refeicao.dart';
@@ -64,6 +67,8 @@ class _DashboardPageState extends State<DashboardPage> {
   int _refeicoes = 0;
   int _exercicios = 0;
   int _exerciciosFeitos = 0;
+  int _examesLab = 0;
+  int _examesEsp = 0;
   List<Atividade> _itensAtividades = <Atividade>[];
   RegistroBemEstar? _bemEstarHoje;
 
@@ -84,7 +89,23 @@ class _DashboardPageState extends State<DashboardPage> {
       _carregarBemEstar(),
       _carregarPlano(),
       _carregarReabilitacao(),
+      _carregarExames(),
     ]);
+  }
+
+  Future<void> _carregarExames() async {
+    try {
+      final List<Exame> lista = await examesRepo.listar();
+      if (!mounted) return;
+      setState(() {
+        _examesLab = lista
+            .where((Exame e) => e.categoria == CategoriaExame.laboratorial)
+            .length;
+        _examesEsp = lista
+            .where((Exame e) => e.categoria == CategoriaExame.especialidade)
+            .length;
+      });
+    } catch (_) {/* sem banco */}
   }
 
   Future<void> _carregarReabilitacao() async {
@@ -415,9 +436,35 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<void> _abrirSeguranca() =>
       _abrir(const SegurancaPage(), _carregarTudo);
 
+  /// Abre a tela de exames da categoria e, ao voltar, atualiza a contagem.
+  Future<void> _abrirExames(CategoriaExame categoria) => _abrir(
+        ExamesPage(categoria: categoria),
+        _carregarExames,
+      );
+
   /// Cada card simples: texto real (quando há dado) e a tela que abre.
   Widget _card(CardConfig config) {
     switch (config.id) {
+      case 'exames_lab':
+        return ToqueEscala(
+          child: CartaoGrade(
+            config: config,
+            texto: _examesLab == 0
+                ? 'nenhum resultado'
+                : '$_examesLab ${_examesLab == 1 ? 'guardado' : 'guardados'}',
+            aoTocar: () => _abrirExames(CategoriaExame.laboratorial),
+          ),
+        );
+      case 'exames_especialidade':
+        return ToqueEscala(
+          child: CartaoGrade(
+            config: config,
+            texto: _examesEsp == 0
+                ? 'nenhum exame'
+                : '$_examesEsp ${_examesEsp == 1 ? 'guardado' : 'guardados'}',
+            aoTocar: () => _abrirExames(CategoriaExame.especialidade),
+          ),
+        );
       case 'remedios':
         return ToqueEscala(
           child: CartaoRemedios(

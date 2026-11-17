@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/navigation/barra_inferior.dart';
-import '../../exams/data/exames_repositorio.dart';
-import '../../exams/domain/exame.dart';
-import '../../exams/presentation/exames_page.dart';
 import '../data/agenda_repositorio.dart';
+import '../data/notificacoes.dart';
+import '../domain/aviso.dart';
 import '../domain/compromisso.dart';
 
 /// Agenda: consultas e exames, com o próximo compromisso em destaque.
@@ -33,7 +32,6 @@ class _AgendaPageState extends State<AgendaPage> {
     _carregar();
   }
 
-  List<Exame> _exames = <Exame>[];
 
   void _aoMedirBarra() {
     if (mounted) setState(() {});
@@ -48,26 +46,15 @@ class _AgendaPageState extends State<AgendaPage> {
   Future<void> _carregar() async {
     try {
       final List<Compromisso> lista = await agendaRepo.listar();
-      final List<Exame> exames = await examesRepo.listar();
       if (!mounted) return;
       setState(() {
         _itens = lista;
-        _exames = exames;
         _carregando = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() => _carregando = false);
     }
-  }
-
-  Future<void> _abrirExames() async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (BuildContext _) => const ExamesPage(),
-      ),
-    );
-    await _carregar();
   }
 
   Future<void> _adicionar() async {
@@ -85,17 +72,31 @@ class _AgendaPageState extends State<AgendaPage> {
 
     if (novo == null) return;
     await agendaRepo.salvar(novo);
+    // Agenda os dois avisos: 1 hora e 30 minutos antes.
+    final List<Compromisso> salvos = await agendaRepo.listar();
+    final Compromisso? comId = salvos
+        .where((Compromisso c) =>
+            c.titulo == novo.titulo &&
+            c.quando.isAtSameMomentAs(novo.quando))
+        .firstOrNull;
+    if (comId != null) await notificacoesCompromissos.agendar(comId);
     await _carregar();
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${novo.titulo}: ${quandoResumido(novo.quando)}')),
+      SnackBar(
+        content: Text(
+          '${novo.titulo}: ${quandoResumido(novo.quando)} · '
+          'avisos 1h e 30min antes',
+        ),
+      ),
     );
   }
 
   Future<void> _remover(Compromisso c) async {
     final int? id = c.id;
     if (id == null) return;
+    await notificacoesCompromissos.cancelar(c);
     await agendaRepo.remover(id);
     await _carregar();
   }
@@ -194,16 +195,12 @@ class _AgendaPageState extends State<AgendaPage> {
                       ? ListView(
                           padding: EdgeInsets.fromLTRB(16, 6, 16, respiroInferior),
                           children: <Widget>[
-                            _cartaoExames(),
-                            const SizedBox(height: 10),
                             _vazio(),
                           ],
                         )
                       : ListView(
                           padding: EdgeInsets.fromLTRB(16, 6, 16, respiroInferior),
                           children: <Widget>[
-                            _cartaoExames(),
-                            const SizedBox(height: 4),
                             if (futuros.isNotEmpty) ...<Widget>[
                               _secao('Próximos'),
                               ...futuros.map(_cartao),
@@ -219,85 +216,6 @@ class _AgendaPageState extends State<AgendaPage> {
                         ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _cartaoExames() {
-    final int comFoto = _exames.where((Exame e) => e.temFoto).length;
-
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(16),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: _abrirExames,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: <Color>[
-                AppColors.tinta(const Color(0xFF5E35B1), 0.09),
-                AppColors.tinta(const Color(0xFF5E35B1), 0.17),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFF5E35B1).withValues(alpha: 0.26),
-              width: 1.1,
-            ),
-          ),
-          child: Row(
-            children: <Widget>[
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF5E35B1),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                child: const Icon(Icons.science_rounded,
-                    color: Colors.white, size: 18),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    const Text(
-                      'Meus exames',
-                      style: TextStyle(
-                        fontFamily: 'Nunito',
-                        fontVariations: <FontVariation>[
-                          FontVariation('wght', 800),
-                        ],
-                        fontSize: 15,
-                        color: Color(0xFF3F2380),
-                      ),
-                    ),
-                    Text(
-                      _exames.isEmpty
-                          ? 'guarde o resultado e quem pediu'
-                          : '${_exames.length} guardado'
-                              '${_exames.length == 1 ? '' : 's'}'
-                              '${comFoto == 0 ? '' : ' · $comFoto com foto'}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        color: AppColors.textoSuave,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right_rounded,
-                  color: Color(0xFF5E35B1), size: 20),
-            ],
-          ),
         ),
       ),
     );
@@ -449,6 +367,34 @@ class _AgendaPageState extends State<AgendaPage> {
                       color: AppColors.textoSuave,
                     ),
                   ),
+                  // Os dois avisos ficam escritos: a pessoa sabe que o celular
+                  // vai tocar 1 hora e 30 minutos antes.
+                  if (!apagado)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Row(
+                        children: <Widget>[
+                          Icon(Icons.notifications_active_rounded,
+                              size: 12,
+                              color: _indigo.withValues(alpha: 0.75)),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              avisosDo(c)
+                                  .map((Aviso a) => a.rotulo)
+                                  .join(' e '),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11,
+                                height: 1.15,
+                                color: _indigo.withValues(alpha: 0.75),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),

@@ -6,6 +6,12 @@ import 'core/navigation/app_shell.dart';
 import 'core/theme/app_colors.dart';
 import 'features/agenda/data/agenda_repositorio.dart';
 import 'features/agenda/data/agenda_sqlite.dart';
+import 'features/agenda/data/notificacoes.dart';
+import 'features/agenda/domain/compromisso.dart';
+// No Android vale o plugin de notificações; na web (preview) entra a versão
+// vazia, porque o plugin não existe em navegador.
+import 'notificacoes_android.dart'
+    if (dart.library.js_interop) 'notificacoes_vazio.dart';
 import 'features/exams/data/exames_repositorio.dart';
 import 'features/exams/data/exames_sqlite.dart';
 import 'features/medications/data/repositorio.dart';
@@ -57,11 +63,25 @@ void main() async {
     usarBemEstarRepo(BemEstarSqlite());
     usarPlanoRepo(PlanoSqlite());
     usarExamesRepo(ExamesSqlite());
+    usarNotificacoesCompromissos(NotificacoesAndroid());
     usarReabilitacaoRepo(ReabilitacaoSqlite());
   }
   // Garante que exista um paciente ativo antes da primeira tela: os nomes de
   // arquivo do banco dependem dele.
   await garantirPacienteAtual();
+
+  // Reagenda os avisos dos compromissos futuros (o celular pode ter
+  // reiniciado, ou a permissao de notificacao pode ter sido dada depois).
+  if (!kIsWeb) {
+    try {
+      final List<Compromisso> agenda = await agendaRepo.listar();
+      for (final Compromisso c in agenda) {
+        if (c.quando.isAfter(DateTime.now())) {
+          await notificacoesCompromissos.agendar(c);
+        }
+      }
+    } catch (_) {/* sem banco ainda */}
+  }
   runApp(const CultivandoSaudeApp());
 }
 

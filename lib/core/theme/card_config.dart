@@ -131,6 +131,29 @@ const List<CardConfig> cardsDoDashboard = <CardConfig>[
     rotuloBotao: 'Ver agenda',
   ),
 
+  // 6b — Resultados de laboratório · azul-petróleo (exame clínico)
+  // A Agenda ficou só para horários; os resultados ganharam card próprio.
+  CardConfig(
+    id: 'exames_lab',
+    titulo: 'Laboratório',
+    texto: 'Resultados de exames',
+    icone: Icons.science_rounded,
+    cor: Color(0xFF1565C0),
+    corBotao: Color(0xFF0D3E7C),
+    rotuloBotao: 'Ver resultados',
+  ),
+
+  // 6c — Exames de especialidades · roxo-vinho (imagem e laudo)
+  CardConfig(
+    id: 'exames_especialidade',
+    titulo: 'Especialidades',
+    texto: 'Raio-X, ultrassom e laudos',
+    icone: Icons.monitor_heart_rounded,
+    cor: Color(0xFF8E24AA),
+    corBotao: Color(0xFF5A1470),
+    rotuloBotao: 'Ver exames',
+  ),
+
   // 7 — Plano Alimentar · verde-lima (nutrição, frescor) — 5,5:1 no botão
   CardConfig(
     id: 'alimentacao',

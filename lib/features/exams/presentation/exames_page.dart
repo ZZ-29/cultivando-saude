@@ -10,7 +10,10 @@ import '../domain/exame.dart';
 /// A foto usa a mesma captura da receita (`capturaPrescricao`): no Android ela
 /// abre a câmera; na prévia avisa que o recurso é do app instalado.
 class ExamesPage extends StatefulWidget {
-  const ExamesPage({super.key});
+  const ExamesPage({required this.categoria, super.key});
+
+  /// Qual familia de exames esta tela mostra.
+  final CategoriaExame categoria;
 
   @override
   State<ExamesPage> createState() => _ExamesPageState();
@@ -30,7 +33,11 @@ class _ExamesPageState extends State<ExamesPage> {
   }
 
   Future<void> _carregar() async {
-    final List<Exame> lista = await examesRepo.listar();
+    final List<Exame> todos = await examesRepo.listar();
+    // Cada card mostra só a sua família de exames.
+    final List<Exame> lista = todos
+        .where((Exame e) => e.categoria == widget.categoria)
+        .toList(growable: false);
     if (!mounted) return;
     setState(() {
       _itens = lista;
@@ -48,7 +55,7 @@ class _ExamesPageState extends State<ExamesPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (BuildContext _) => const _FolhaExame(),
+      builder: (BuildContext _) => _FolhaExame(categoria: widget.categoria),
     );
     if (novo == null) return;
     await examesRepo.salvar(novo);
@@ -98,9 +105,9 @@ class _ExamesPageState extends State<ExamesPage> {
                       color: AppColors.texto,
                     ),
                   const SizedBox(width: 2),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Exames',
+                      widget.categoria.titulo,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -160,7 +167,7 @@ class _ExamesPageState extends State<ExamesPage> {
             ),
             const SizedBox(height: 14),
             const Text(
-              'Nenhum exame guardado',
+              'Nada guardado ainda',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'Nunito',
@@ -170,9 +177,8 @@ class _ExamesPageState extends State<ExamesPage> {
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
-              'Guarde o nome, quem pediu e a foto do resultado — útil quando '
-              'outro médico pedir.',
+            Text(
+              widget.categoria.dica,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -274,7 +280,9 @@ class _ExamesPageState extends State<ExamesPage> {
 }
 
 class _FolhaExame extends StatefulWidget {
-  const _FolhaExame();
+  const _FolhaExame({required this.categoria});
+
+  final CategoriaExame categoria;
 
   @override
   State<_FolhaExame> createState() => _FolhaExameState();
@@ -329,6 +337,7 @@ class _FolhaExameState extends State<_FolhaExame> {
         local: _local.text.trim(),
         medico: _medico.text.trim(),
         foto: _foto,
+        categoria: widget.categoria,
       ),
     );
   }
@@ -375,7 +384,7 @@ class _FolhaExameState extends State<_FolhaExame> {
               controller: _nome,
               textCapitalization: TextCapitalization.sentences,
               style: const TextStyle(fontSize: 16),
-              decoration: _decoracao('Nome do exame', 'Ex.: Hemograma'),
+              decoration: _decoracao('Nome do exame', widget.categoria.exemplo),
             ),
             const SizedBox(height: 10),
             TextField(
