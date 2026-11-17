@@ -53,12 +53,18 @@ jobs:
       - name: Compilar APK de release
         run: flutter build apk --release
 
+      # Copia o APK com o nome ESTÁVEL do QR code.
+      # O QR aponta para: releases/latest/download/CultivandoSaude.apk
+      # Se o nome do arquivo mudar, o QR quebra.
+      - name: Nome estável do APK (o mesmo do QR)
+        run: cp build/app/outputs/flutter-apk/app-release.apk CultivandoSaude.apk
+
       # Artefato: fica na aba Actions (exige login no GitHub).
       - name: Guardar APK como artefato
         uses: actions/upload-artifact@v4
         with:
           name: cultivando-saude-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: CultivandoSaude.apk
           retention-days: 90
 
       # Release: link PÚBLICO, que o celular baixa sem login.
@@ -66,12 +72,12 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: build/app/outputs/flutter-apk/app-release.apk
+          files: CultivandoSaude.apk
           name: Cultivando Saúde ${{ github.ref_name }}
           body: |
             APK gerado automaticamente pelo GitHub Actions.
 
-            1. Baixe `app-release.apk` no celular.
+            1. Baixe `CultivandoSaude.apk` no celular (ou use o QR).
             2. Instale (o Android pede para permitir fonte desconhecida).
             3. Autorize as notificações:
                Configurações → Aplicativos → Cultivando Saúde → Notificações.
