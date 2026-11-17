@@ -106,24 +106,27 @@ class CartaoUsuario extends StatelessWidget {
                   ),
                   const SizedBox(height: 1),
 
-                  // Saudação com o nome (cursiva, casando com a marca)
+                  // Nome em letra NORMAL (Nunito) e menor: aqui ele é dado,
+                  // não assinatura — a assinatura cursiva é o nome do app, no
+                  // card da marca.
                   Text(
                     saudacao,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontFamily: 'DancingScript',
+                      fontFamily: 'Nunito',
                       fontVariations: <ui.FontVariation>[
-                        ui.FontVariation('wght', 600),
+                        ui.FontVariation('wght', 700),
                       ],
-                      fontSize: 27,
-                      height: 1.02,
+                      fontSize: 17,
+                      height: 1.15,
                       color: AppColors.tituloApp,
                     ),
                   ),
-                  const SizedBox(height: 1),
+                  const SizedBox(height: 2),
 
-                  // Idade e sangue: encolhe em vez de cortar em tela estreita.
+                  // Idade e sangue maiores: é o dado que alguém precisa ler
+                  // de longe numa emergência.
                   Align(
                     alignment: Alignment.centerLeft,
                     child: FittedBox(
@@ -134,10 +137,10 @@ class CartaoUsuario extends StatelessWidget {
                         style: TextStyle(
                           fontFamily: 'Nunito',
                           fontVariations: const <ui.FontVariation>[
-                            ui.FontVariation('wght', 600),
+                            ui.FontVariation('wght', 800),
                           ],
-                          fontSize: 15.5,
-                          height: 1.05,
+                          fontSize: 17,
+                          height: 1.1,
                           color: AppColors.lilasTexto,
                         ),
                       ),

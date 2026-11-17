@@ -38,6 +38,8 @@ class CartaoGrade extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color corTexto = config.corBotao;
+    // Título pode ter cor própria (ex.: Agenda em laranja).
+    final Color corTitulo = config.corTitulo ?? corTexto;
 
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints limites) {
@@ -122,7 +124,7 @@ class CartaoGrade extends StatelessWidget {
                           fontSize: estreito ? 14 : 15,
                           fontWeight: FontWeight.w800,
                           height: 1.1,
-                          color: corTexto,
+                          color: corTitulo,
                         ),
                       ),
                       const SizedBox(height: 1),

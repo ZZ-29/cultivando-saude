@@ -1,4 +1,9 @@
 /// Um compromisso de saúde: consulta, exame ou outro.
+///
+/// Guarda também o **endereço** — e não só o nome do lugar. As clínicas mandam
+/// o endereço pelo WhatsApp; sem ele aqui, a pessoa precisa abrir o aplicativo
+/// de mensagens na hora de sair. Com o endereço na agenda, o dado está onde a
+/// hora já está.
 class Compromisso {
   const Compromisso({
     this.id,
@@ -6,15 +11,22 @@ class Compromisso {
     required this.tipo,
     required this.quando,
     this.local = '',
+    this.endereco = '',
   });
 
   final int? id;
   final String titulo;
   final TipoCompromisso tipo;
   final DateTime quando;
+
+  /// Nome do lugar: "Clínica Vida", "Lab Central".
   final String local;
 
+  /// Endereço completo, como veio do WhatsApp: rua, número, bairro, cidade.
+  final String endereco;
+
   bool get passado => quando.isBefore(DateTime.now());
+  bool get temEndereco => endereco.trim().isNotEmpty;
 
   Compromisso copiarCom({int? id}) => Compromisso(
         id: id ?? this.id,
@@ -22,6 +34,7 @@ class Compromisso {
         tipo: tipo,
         quando: quando,
         local: local,
+        endereco: endereco,
       );
 
   Map<String, Object?> paraJson() => <String, Object?>{
@@ -29,6 +42,7 @@ class Compromisso {
         'tipo': tipo.name,
         'quando': quando.toIso8601String(),
         'local': local,
+        'endereco': endereco,
       };
 
   factory Compromisso.doJson(Map<String, Object?> json) => Compromisso(
@@ -40,6 +54,7 @@ class Compromisso {
         quando: DateTime.tryParse((json['quando'] as String?) ?? '') ??
             DateTime.now(),
         local: (json['local'] as String?) ?? '',
+        endereco: (json['endereco'] as String?) ?? '',
       );
 }
 

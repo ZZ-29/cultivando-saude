@@ -37,6 +37,7 @@ class CardConfig {
     required this.icone,
     required this.cor,
     required this.corBotao,
+    this.corTitulo,
     this.rotuloBotao = 'Abrir',
     this.tipo = TipoCard.simples,
   });
@@ -47,6 +48,10 @@ class CardConfig {
   final IconData icone;
   final Color cor;
   final Color corBotao;
+
+  /// Cor só do TÍTULO do card, quando se quer um destaque diferente do resto
+  /// (ex.: Agenda em laranja). Quando vazia, usa [corBotao].
+  final Color? corTitulo;
   final String rotuloBotao;
   final TipoCard tipo;
 
@@ -128,6 +133,9 @@ const List<CardConfig> cardsDoDashboard = <CardConfig>[
     icone: Icons.calendar_month_rounded,
     cor: Color(0xFF7B1FA2),
     corBotao: Color(0xFF4A148C),
+    // Título em laranja: é o card que a pessoa abre com pressa, na hora de
+    // sair de casa.
+    corTitulo: Color(0xFFE65100),
     rotuloBotao: 'Ver agenda',
   ),
 

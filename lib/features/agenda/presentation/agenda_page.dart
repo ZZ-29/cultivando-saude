@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/navigation/barra_inferior.dart';
@@ -99,6 +100,19 @@ class _AgendaPageState extends State<AgendaPage> {
     await notificacoesCompromissos.cancelar(c);
     await agendaRepo.remover(id);
     await _carregar();
+  }
+
+  /// Copia o endereço para a área de transferência (para colar no mapa ou
+  /// mandar para alguém).
+  Future<void> _copiarEndereco(Compromisso c) async {
+    await Clipboard.setData(ClipboardData(text: c.endereco));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Endereço copiado.'),
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -367,6 +381,44 @@ class _AgendaPageState extends State<AgendaPage> {
                       color: AppColors.textoSuave,
                     ),
                   ),
+                  // Endereço da clínica, com botão de copiar: é o dado que
+                  // hoje a pessoa caça no WhatsApp na hora de sair.
+                  if (c.temEndereco)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Icon(Icons.place_rounded,
+                              size: 13,
+                              color: _indigo.withValues(alpha: 0.85)),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              c.endereco,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                height: 1.2,
+                                fontWeight: FontWeight.w600,
+                                color: _indigoEscuro.withValues(alpha: 0.9),
+                              ),
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () => _copiarEndereco(c),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.all(2),
+                              child: Icon(Icons.copy_rounded,
+                                  size: 14,
+                                  color: _indigo.withValues(alpha: 0.85)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   // Os dois avisos ficam escritos: a pessoa sabe que o celular
                   // vai tocar 1 hora e 30 minutos antes.
                   if (!apagado)
@@ -425,6 +477,7 @@ class _FormularioCompromissoState extends State<_FormularioCompromisso> {
 
   final TextEditingController _titulo = TextEditingController();
   final TextEditingController _local = TextEditingController();
+  final TextEditingController _endereco = TextEditingController();
 
   TipoCompromisso _tipo = TipoCompromisso.consulta;
   DateTime _quando = DateTime.now().add(const Duration(days: 1));
@@ -434,6 +487,7 @@ class _FormularioCompromissoState extends State<_FormularioCompromisso> {
   void dispose() {
     _titulo.dispose();
     _local.dispose();
+    _endereco.dispose();
     super.dispose();
   }
 
@@ -482,6 +536,7 @@ class _FormularioCompromissoState extends State<_FormularioCompromisso> {
         tipo: _tipo,
         quando: _quando,
         local: _local.text.trim(),
+        endereco: _endereco.text.trim(),
       ),
     );
   }
@@ -521,6 +576,20 @@ class _FormularioCompromissoState extends State<_FormularioCompromisso> {
               controller: _local,
               style: const TextStyle(fontSize: 16),
               decoration: _decoracao('Local (opcional)', 'Ex.: Clínica Central'),
+            ),
+            const SizedBox(height: 10),
+            // Endereço: as clínicas mandam por WhatsApp; aqui ele fica junto
+            // da hora, para não precisar procurar na hora de sair.
+            TextField(
+              controller: _endereco,
+              textCapitalization: TextCapitalization.sentences,
+              maxLines: 2,
+              minLines: 1,
+              style: const TextStyle(fontSize: 15.5),
+              decoration: _decoracao(
+                'Endereço (opcional)',
+                'Rua, número, bairro — cole do WhatsApp',
+              ),
             ),
             const SizedBox(height: 12),
             Wrap(
