@@ -12,6 +12,7 @@ class Compromisso {
     required this.quando,
     this.local = '',
     this.endereco = '',
+    this.profissional = '',
   });
 
   final int? id;
@@ -19,14 +20,19 @@ class Compromisso {
   final TipoCompromisso tipo;
   final DateTime quando;
 
-  /// Nome do lugar: "Clínica Vida", "Lab Central".
+  /// Nome do lugar, quando fizer sentido ("Hospital São Lucas").
   final String local;
 
   /// Endereço completo, como veio do WhatsApp: rua, número, bairro, cidade.
   final String endereco;
 
+  /// **Quem atende**: médica, médico, fisioterapeuta, dentista…
+  /// É o dado que identifica a consulta; o endereço já diz o lugar.
+  final String profissional;
+
   bool get passado => quando.isBefore(DateTime.now());
   bool get temEndereco => endereco.trim().isNotEmpty;
+  bool get temProfissional => profissional.trim().isNotEmpty;
 
   Compromisso copiarCom({int? id}) => Compromisso(
         id: id ?? this.id,
@@ -35,6 +41,7 @@ class Compromisso {
         quando: quando,
         local: local,
         endereco: endereco,
+        profissional: profissional,
       );
 
   Map<String, Object?> paraJson() => <String, Object?>{
@@ -43,6 +50,7 @@ class Compromisso {
         'quando': quando.toIso8601String(),
         'local': local,
         'endereco': endereco,
+        'profissional': profissional,
       };
 
   factory Compromisso.doJson(Map<String, Object?> json) => Compromisso(
@@ -55,6 +63,7 @@ class Compromisso {
             DateTime.now(),
         local: (json['local'] as String?) ?? '',
         endereco: (json['endereco'] as String?) ?? '',
+        profissional: (json['profissional'] as String?) ?? '',
       );
 }
 

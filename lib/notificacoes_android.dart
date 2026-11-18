@@ -91,6 +91,7 @@ class NotificacoesAndroid implements NotificacoesCompromissos {
       // tem o lugar.
       final String corpo = <String>[
         '${compromisso.titulo} — às $hora',
+        if (compromisso.temProfissional) compromisso.profissional.trim(),
         if (compromisso.local.trim().isNotEmpty) compromisso.local.trim(),
         if (compromisso.temEndereco) '📍 ${compromisso.endereco.trim()}',
       ].join('\n');

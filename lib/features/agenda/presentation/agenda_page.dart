@@ -442,8 +442,10 @@ class _AgendaPageState extends State<AgendaPage> {
                   ),
                   const SizedBox(height: 2),
                   Text(
+                    // Quem atende vem primeiro; o nome do lugar só aparece se
+                    // não houver profissional (para não repetir o endereço).
                     '${quandoResumido(c.quando)} · ${c.tipo.rotulo}'
-                    '${c.local.isEmpty ? '' : ' · ${c.local}'}',
+                    '${c.temProfissional ? ' · ${c.profissional}' : (c.local.trim().isEmpty ? '' : ' · ${c.local.trim()}')}',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -553,8 +555,8 @@ class _FormularioCompromissoState extends State<_FormularioCompromisso> {
 
   late final TextEditingController _titulo =
       TextEditingController(text: widget.inicial?.titulo ?? '');
-  late final TextEditingController _local =
-      TextEditingController(text: widget.inicial?.local ?? '');
+  late final TextEditingController _profissional =
+      TextEditingController(text: widget.inicial?.profissional ?? '');
   late final TextEditingController _endereco =
       TextEditingController(text: widget.inicial?.endereco ?? '');
 
@@ -566,7 +568,7 @@ class _FormularioCompromissoState extends State<_FormularioCompromisso> {
   @override
   void dispose() {
     _titulo.dispose();
-    _local.dispose();
+    _profissional.dispose();
     _endereco.dispose();
     super.dispose();
   }
@@ -616,7 +618,7 @@ class _FormularioCompromissoState extends State<_FormularioCompromisso> {
         titulo: titulo,
         tipo: _tipo,
         quando: _quando,
-        local: _local.text.trim(),
+        profissional: _profissional.text.trim(),
         endereco: _endereco.text.trim(),
       ),
     );
@@ -668,9 +670,13 @@ class _FormularioCompromissoState extends State<_FormularioCompromisso> {
             ),
             const SizedBox(height: 10),
             TextField(
-              controller: _local,
+              controller: _profissional,
+              textCapitalization: TextCapitalization.words,
               style: const TextStyle(fontSize: 16),
-              decoration: _decoracao('Local (opcional)', 'Ex.: Clínica Central'),
+              decoration: _decoracao(
+                'Profissional (opcional)',
+                'Ex.: Dra. Helena Souza',
+              ),
             ),
             const SizedBox(height: 12),
             Wrap(
