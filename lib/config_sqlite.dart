@@ -1,7 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 
-import '../../patients/data/paciente_atual.dart';
-import 'config_repositorio.dart';
+import 'features/patients/data/paciente_atual.dart';
+import 'core/config/config_repositorio.dart';
 
 /// Configurações em **SQLite** (Android), um banco por paciente.
 class ConfigSqlite implements ConfigRepo {

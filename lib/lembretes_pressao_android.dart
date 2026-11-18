@@ -79,7 +79,7 @@ class LembretesPressaoAndroid implements LembretesPressao {
 
     bool exato = true;
     for (final String hhmm in horarios) {
-      final List<int> partes = hhmm.split(':');
+      final List<String> partes = hhmm.split(':');
       final int hora = int.tryParse(partes.first) ?? 8;
       final int minuto = partes.length > 1 ? (int.tryParse(partes[1]) ?? 0) : 0;
 
