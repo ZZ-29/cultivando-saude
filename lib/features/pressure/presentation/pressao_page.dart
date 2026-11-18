@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../data/compartilhar.dart';
 import '../data/pressao_repositorio.dart';
+import '../domain/texto_pressao.dart';
 import '../domain/medicao.dart';
 
 /// Pressão: registrar medida e ver o histórico.
@@ -141,6 +143,121 @@ class _PressaoPageState extends State<PressaoPage> {
     await _carregar();
   }
 
+  /// Envia as medidas para o WhatsApp — o pedido da cardiologista.
+  ///
+  /// Abre uma folha para escolher o período (hoje ou últimos 7 dias) e monta a
+  /// mensagem já formatada: data, período do dia, valor e pulso, com a média no
+  /// fim.
+  Future<void> _enviarWhatsapp() async {
+    if (_itens.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Registre uma medida primeiro.')),
+      );
+      return;
+    }
+
+    final int? dias = await showModalBottomSheet<int>(
+      context: context,
+      showDragHandle: true,
+      useSafeArea: true,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            const Text(
+              'Enviar por WhatsApp',
+              style: TextStyle(
+                fontFamily: 'Nunito',
+                fontVariations: <FontVariation>[
+                  FontVariation('wght', 700),
+                ],
+                fontSize: 20,
+                color: AppColors.texto,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Escolha quais medidas vão na mensagem.',
+              style: TextStyle(fontSize: 13, color: AppColors.textoSuave),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(1),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF25D366),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  'Só as de hoje',
+                  style:
+                      TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(7),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF1B6B3A),
+                  side: const BorderSide(color: Color(0xFF25D366), width: 1.4),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  'Últimos 7 dias',
+                  style:
+                      TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (dias == null) return;
+
+    final DateTime limite = DateTime.now().subtract(Duration(days: dias));
+    final List<Medicao> escolhidas = _itens
+        .where((Medicao m) => m.quando.isAfter(limite))
+        .toList(growable: false);
+    if (escolhidas.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nenhuma medida nesse período.')),
+      );
+      return;
+    }
+
+    final String texto = textoPressaoParaWhatsapp(escolhidas);
+    final bool abriu = await compartilharWhatsapp.enviar(texto);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          abriu
+              ? 'WhatsApp aberto com as medidas.'
+              : 'Medidas copiadas — cole no WhatsApp.',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -219,6 +336,38 @@ class _PressaoPageState extends State<PressaoPage> {
                 ],
               ),
             ),
+            // Enviar ao médico pelo WhatsApp: é o que a cardiologista pediu,
+            // sem copiar e colar.
+            if (_itens.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+                child: SizedBox(
+                  height: 48,
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _enviarWhatsapp,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF25D366),
+                      foregroundColor: Colors.white,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    icon: const Icon(Icons.send_rounded, size: 19),
+                    label: const Text(
+                      'Enviar por WhatsApp',
+                      style: TextStyle(
+                        fontFamily: 'Nunito',
+                        fontVariations: <FontVariation>[
+                          FontVariation('wght', 800),
+                        ],
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             Expanded(
               child: _carregando
                   ? const Center(

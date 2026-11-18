@@ -10,6 +10,8 @@ import 'features/agenda/data/notificacoes.dart';
 import 'features/agenda/domain/compromisso.dart';
 // No Android vale o plugin de notificações; na web (preview) entra a versão
 // vazia, porque o plugin não existe em navegador.
+import 'compartilhar_android.dart'
+    if (dart.library.js_interop) 'compartilhar_vazio.dart';
 import 'notificacoes_android.dart'
     if (dart.library.js_interop) 'notificacoes_vazio.dart';
 import 'features/exams/data/exames_repositorio.dart';
@@ -20,6 +22,7 @@ import 'features/nutrition/data/plano_repositorio.dart';
 import 'features/nutrition/data/plano_sqlite.dart';
 import 'features/patients/data/pacientes_repositorio.dart';
 import 'features/patients/data/pacientes_sqlite.dart';
+import 'features/pressure/data/compartilhar.dart';
 import 'features/pressure/data/pressao_repositorio.dart';
 import 'features/pressure/data/pressao_sqlite.dart';
 import 'features/profile/data/perfil_repositorio.dart';
@@ -64,6 +67,7 @@ void main() async {
     usarPlanoRepo(PlanoSqlite());
     usarExamesRepo(ExamesSqlite());
     usarNotificacoesCompromissos(NotificacoesAndroid());
+    usarCompartilharWhatsapp(CompartilharWhatsappAndroid());
     usarReabilitacaoRepo(ReabilitacaoSqlite());
   }
   // Garante que exista um paciente ativo antes da primeira tela: os nomes de
