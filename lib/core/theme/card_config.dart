@@ -130,12 +130,12 @@ const List<CardConfig> cardsDoDashboard = <CardConfig>[
     id: 'agenda',
     titulo: 'Agenda',
     texto: 'Amanhã 10h',
-    icone: Icons.calendar_month_rounded,
-    cor: Color(0xFF7B1FA2),
-    corBotao: Color(0xFF4A148C),
-    // Título em laranja: é o card que a pessoa abre com pressa, na hora de
-    // sair de casa.
-    corTitulo: Color(0xFFE65100),
+    // Relógio: o assunto do card é horário — e a cor é laranja quente, não
+    // lilás (que não tem nada a ver com compromisso).
+    icone: Icons.alarm_rounded,
+    cor: Color(0xFFEA580C),
+    corBotao: Color(0xFF9A3412),
+    corTitulo: Color(0xFFC2410C),
     rotuloBotao: 'Ver agenda',
   ),
 

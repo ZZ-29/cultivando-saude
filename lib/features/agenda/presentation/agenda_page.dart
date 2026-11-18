@@ -20,8 +20,10 @@ class AgendaPage extends StatefulWidget {
 }
 
 class _AgendaPageState extends State<AgendaPage> {
-  static const Color _indigo = Color(0xFF5E35B1);
-  static const Color _indigoEscuro = Color(0xFF3F2380);
+  // Agenda em laranja: horário, sol, compromisso — combina com o assunto e
+  // destaca na grade. Nada de lilás/azul aqui.
+  static const Color _indigo = Color(0xFFEA580C);
+  static const Color _indigoEscuro = Color(0xFF9A3412);
 
   List<Compromisso> _itens = <Compromisso>[];
   bool _carregando = true;
@@ -223,6 +225,9 @@ class _AgendaPageState extends State<AgendaPage> {
                     ),
                     const SizedBox(width: 2),
                   ],
+                  // Relógio ao lado da palavra: Agenda é horário.
+                  const Icon(Icons.alarm_rounded, color: _indigo, size: 26),
+                  const SizedBox(width: 8),
                   const Expanded(
                     child: Text(
                       'Agenda',
@@ -235,7 +240,7 @@ class _AgendaPageState extends State<AgendaPage> {
                         ],
                         fontSize: 26,
                         height: 1.1,
-                        color: AppColors.texto,
+                        color: _indigo,
                       ),
                     ),
                   ),
@@ -551,7 +556,7 @@ class _FormularioCompromisso extends StatefulWidget {
 }
 
 class _FormularioCompromissoState extends State<_FormularioCompromisso> {
-  static const Color _indigo = Color(0xFF5E35B1);
+  static const Color _indigo = Color(0xFFEA580C);
 
   late final TextEditingController _titulo =
       TextEditingController(text: widget.inicial?.titulo ?? '');
