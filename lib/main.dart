@@ -10,6 +10,9 @@ import 'features/agenda/data/notificacoes.dart';
 import 'features/agenda/domain/compromisso.dart';
 // No Android vale o plugin de notificações; na web (preview) entra a versão
 // vazia, porque o plugin não existe em navegador.
+import 'config_sqlite.dart';
+import 'lembretes_pressao_android.dart'
+    if (dart.library.js_interop) 'lembretes_pressao_vazio.dart';
 import 'compartilhar_android.dart'
     if (dart.library.js_interop) 'compartilhar_vazio.dart';
 import 'notificacoes_android.dart'
@@ -22,7 +25,9 @@ import 'features/nutrition/data/plano_repositorio.dart';
 import 'features/nutrition/data/plano_sqlite.dart';
 import 'features/patients/data/pacientes_repositorio.dart';
 import 'features/patients/data/pacientes_sqlite.dart';
+import 'core/config/config_repositorio.dart';
 import 'features/pressure/data/compartilhar.dart';
+import 'features/pressure/data/lembretes_pressao.dart';
 import 'features/pressure/data/pressao_repositorio.dart';
 import 'features/pressure/data/pressao_sqlite.dart';
 import 'features/profile/data/perfil_repositorio.dart';
@@ -68,11 +73,30 @@ void main() async {
     usarExamesRepo(ExamesSqlite());
     usarNotificacoesCompromissos(NotificacoesAndroid());
     usarCompartilharWhatsapp(CompartilharWhatsappAndroid());
+    usarConfigRepo(ConfigSqlite());
+    usarLembretesPressao(LembretesPressaoAndroid());
     usarReabilitacaoRepo(ReabilitacaoSqlite());
   }
   // Garante que exista um paciente ativo antes da primeira tela: os nomes de
   // arquivo do banco dependem dele.
   await garantirPacienteAtual();
+
+  // Reagenda os lembretes de pressão, se estiverem ligados.
+  if (!kIsWeb) {
+    try {
+      final bool ligados =
+          (await configRepo.ler(ChavesConfig.lembretesPressao)) == '1';
+      if (ligados) {
+        final List<String> horarios = await lerHorariosSalvos(
+          configRepo,
+          ChavesConfig.horariosPressao,
+        );
+        await lembretesPressao.ligar(
+          horarios.isEmpty ? horariosPadraoPressao : horarios,
+        );
+      }
+    } catch (_) {/* sem banco ainda */}
+  }
 
   // Reagenda os avisos dos compromissos futuros (o celular pode ter
   // reiniciado, ou a permissao de notificacao pode ter sido dada depois).

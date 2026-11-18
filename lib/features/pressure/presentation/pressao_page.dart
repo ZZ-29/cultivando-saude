@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
+import 'dart:convert';
+
+import '../../../core/config/config_repositorio.dart';
 import '../../../core/theme/app_colors.dart';
 import '../data/compartilhar.dart';
+import '../data/lembretes_pressao.dart';
 import '../data/pressao_repositorio.dart';
 import '../domain/texto_pressao.dart';
 import '../domain/medicao.dart';
@@ -28,6 +32,10 @@ class _PressaoPageState extends State<PressaoPage> {
   List<Medicao> _itens = <Medicao>[];
   bool _carregando = true;
 
+  /// Lembretes de medir a pressão (3x ao dia, pedido da cardiologista).
+  bool _lembretesLigados = false;
+  List<String> _horarios = List<String>.from(horariosPadraoPressao);
+
   @override
   void initState() {
     super.initState();
@@ -37,9 +45,19 @@ class _PressaoPageState extends State<PressaoPage> {
   Future<void> _carregar() async {
     try {
       final List<Medicao> lista = await pressaoRepo.listar();
+      final bool ligados =
+          (await configRepo.ler(ChavesConfig.lembretesPressao)) == '1';
+      final List<String> horarios = await lerHorariosSalvos(
+        configRepo,
+        ChavesConfig.horariosPressao,
+      );
       if (!mounted) return;
       setState(() {
         _itens = lista;
+        _lembretesLigados = ligados;
+        _horarios = horarios.isEmpty
+            ? List<String>.from(horariosPadraoPressao)
+            : horarios;
         _carregando = false;
       });
     } catch (_) {
@@ -258,6 +276,147 @@ class _PressaoPageState extends State<PressaoPage> {
     );
   }
 
+  /// Liga/desliga os três lembretes diários.
+  Future<void> _alternarLembretes(bool ligar) async {
+    setState(() => _lembretesLigados = ligar);
+    await configRepo.salvar(
+      ChavesConfig.lembretesPressao,
+      ligar ? '1' : '0',
+    );
+
+    if (ligar) {
+      final bool exato = await lembretesPressao.ligar(_horarios);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            exato
+                ? 'Lembretes ligados: ${_horarios.join(' · ')}'
+                // Quando o Android nega o alarme exato, é honesto avisar.
+                : 'Lembretes ligados. O celular pode avisar com alguns minutos '
+                    'de diferença.',
+          ),
+        ),
+      );
+    } else {
+      await lembretesPressao.desligar();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lembretes desligados.')),
+      );
+    }
+  }
+
+  /// Troca o horário de um dos três lembretes (manhã, tarde ou noite).
+  Future<void> _editarHorario(int indice) async {
+    final List<String> partes = _horarios[indice].split(':');
+    final TimeOfDay? escolhido = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(
+        hour: int.tryParse(partes.first) ?? 8,
+        minute: partes.length > 1 ? (int.tryParse(partes[1]) ?? 0) : 0,
+      ),
+      helpText: 'Horário do lembrete',
+      cancelText: 'Cancelar',
+      confirmText: 'Confirmar',
+      builder: (BuildContext context, Widget? filho) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: filho ?? const SizedBox.shrink(),
+      ),
+    );
+    if (escolhido == null) return;
+
+    final String texto =
+        '${escolhido.hour.toString().padLeft(2, '0')}:'
+        '${escolhido.minute.toString().padLeft(2, '0')}';
+    final List<String> novos = List<String>.from(_horarios)..[indice] = texto;
+    setState(() => _horarios = novos);
+    await configRepo.salvar(
+      ChavesConfig.horariosPressao,
+      jsonEncode(novos),
+    );
+    if (_lembretesLigados) await lembretesPressao.ligar(novos);
+  }
+
+  /// Bloco de lembretes: três horários, um por período do dia.
+  Widget _blocoLembretes() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 2, 16, 6),
+      padding: const EdgeInsets.fromLTRB(13, 11, 13, 12),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _vermelho.withValues(alpha: 0.24),
+          width: 1.1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(Icons.alarm_rounded, size: 18, color: _vermelhoEscuro),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Lembrar de medir 3x ao dia',
+                  style: TextStyle(
+                    fontFamily: 'Nunito',
+                    fontVariations: <FontVariation>[
+                      FontVariation('wght', 800),
+                    ],
+                    fontSize: 14.5,
+                    color: AppColors.texto,
+                  ),
+                ),
+              ),
+              Switch(
+                value: _lembretesLigados,
+                activeThumbColor: _vermelho,
+                onChanged: _alternarLembretes,
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: List<Widget>.generate(_horarios.length, (int i) {
+              return ActionChip(
+                avatar: const Icon(
+                  Icons.access_time_rounded,
+                  size: 15,
+                  color: _vermelhoEscuro,
+                ),
+                label: Text(
+                  '${periodoDoHorario(_horarios[i])} ${_horarios[i]}',
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                backgroundColor: _vermelho
+                    .withValues(alpha: _lembretesLigados ? 0.12 : 0.05),
+                side: BorderSide(color: _vermelho.withValues(alpha: 0.30)),
+                onPressed: () => _editarHorario(i),
+              );
+            }),
+          ),
+          if (!lembretesPressao.disponivel)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text(
+                'O alarme toca no app Android; aqui o ajuste fica salvo.',
+                style:
+                    TextStyle(fontSize: 10.5, color: AppColors.textoApagado),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -368,6 +527,7 @@ class _PressaoPageState extends State<PressaoPage> {
                   ),
                 ),
               ),
+            _blocoLembretes(),
             Expanded(
               child: _carregando
                   ? const Center(
