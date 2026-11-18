@@ -77,8 +77,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
 
     // Abre o período da manhã (o atual pode ser outro).
+    // O período atual já abre aberto; tocar fecharia.
     final Finder manha = find.text('Manhã');
-    if (manha.evaluate().isNotEmpty) {
+    if (manha.evaluate().isNotEmpty &&
+        find.text('Vitamina D').evaluate().isEmpty) {
       await tester.tap(manha);
       await tester.pump(const Duration(milliseconds: 300));
     }

@@ -72,15 +72,8 @@ class _AgendaPageState extends State<AgendaPage> {
     );
 
     if (novo == null) return;
-    await agendaRepo.salvar(novo);
-    // Agenda os dois avisos: 1 hora e 30 minutos antes.
-    final List<Compromisso> salvos = await agendaRepo.listar();
-    final Compromisso? comId = salvos
-        .where((Compromisso c) =>
-            c.titulo == novo.titulo &&
-            c.quando.isAtSameMomentAs(novo.quando))
-        .firstOrNull;
-    if (comId != null) await notificacoesCompromissos.agendar(comId);
+    final int id = await agendaRepo.salvar(novo);
+    await _agendarAvisos(novo.copiarCom(id: id));
     await _carregar();
 
     if (!mounted) return;
@@ -97,6 +90,72 @@ class _AgendaPageState extends State<AgendaPage> {
         ),
       ),
     );
+  }
+
+  /// Abre o compromisso para **editar** (título, endereço, data, hora).
+  Future<void> _editar(Compromisso c) async {
+    final Compromisso? alterado = await showModalBottomSheet<Compromisso>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      useSafeArea: true,
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (BuildContext _) => _FormularioCompromisso(inicial: c),
+    );
+    if (alterado == null) return;
+
+    await agendaRepo.salvar(alterado);
+    await _agendarAvisos(alterado);
+    await _carregar();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Compromisso atualizado.')),
+    );
+  }
+
+  /// (Re)agenda os dois avisos, cancelando os antigos.
+  Future<void> _agendarAvisos(Compromisso c) async {
+    await notificacoesCompromissos.cancelar(c);
+    await notificacoesCompromissos.agendar(c);
+  }
+
+  /// Pede confirmação antes de apagar — tocar sem querer não apaga consulta.
+  Future<void> _confirmarRemocao(Compromisso c) async {
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        backgroundColor: AppColors.card,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text(
+          'Remover compromisso?',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        ),
+        content: Text(
+          '${c.titulo} — ${quandoResumido(c.quando)}'
+          '${c.temEndereco ? '\n${c.endereco}' : ''}',
+          style: const TextStyle(fontSize: 14, height: 1.35),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFB71C1C),
+            ),
+            child: const Text('Remover'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await _remover(c);
   }
 
   Future<void> _remover(Compromisso c) async {
@@ -308,7 +367,14 @@ class _AgendaPageState extends State<AgendaPage> {
     final Color cor = apagado ? AppColors.textoApagado : _indigo;
     final Color corTexto = apagado ? AppColors.textoSuave : _indigoEscuro;
 
-    return Container(
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        // Toque no cartao ABRE o compromisso para editar.
+        onTap: apagado ? null : () => _editar(c),
+        child: Container(
       margin: const EdgeInsets.only(bottom: 9),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
@@ -457,12 +523,14 @@ class _AgendaPageState extends State<AgendaPage> {
             ),
             IconButton(
               tooltip: 'Remover',
-              onPressed: () => _remover(c),
+              onPressed: () => _confirmarRemocao(c),
               icon: const Icon(Icons.delete_outline_rounded),
               color: AppColors.textoApagado,
               iconSize: 19,
             ),
           ],
+        ),
+      ),
         ),
       ),
     );
@@ -471,7 +539,10 @@ class _AgendaPageState extends State<AgendaPage> {
 
 /// Formulário do compromisso, em folha deslizante.
 class _FormularioCompromisso extends StatefulWidget {
-  const _FormularioCompromisso();
+  const _FormularioCompromisso({this.inicial});
+
+  /// Quando vem preenchido, a folha está **editando** um compromisso.
+  final Compromisso? inicial;
 
   @override
   State<_FormularioCompromisso> createState() => _FormularioCompromissoState();
@@ -480,12 +551,16 @@ class _FormularioCompromisso extends StatefulWidget {
 class _FormularioCompromissoState extends State<_FormularioCompromisso> {
   static const Color _indigo = Color(0xFF5E35B1);
 
-  final TextEditingController _titulo = TextEditingController();
-  final TextEditingController _local = TextEditingController();
-  final TextEditingController _endereco = TextEditingController();
+  late final TextEditingController _titulo =
+      TextEditingController(text: widget.inicial?.titulo ?? '');
+  late final TextEditingController _local =
+      TextEditingController(text: widget.inicial?.local ?? '');
+  late final TextEditingController _endereco =
+      TextEditingController(text: widget.inicial?.endereco ?? '');
 
-  TipoCompromisso _tipo = TipoCompromisso.consulta;
-  DateTime _quando = DateTime.now().add(const Duration(days: 1));
+  late TipoCompromisso _tipo = widget.inicial?.tipo ?? TipoCompromisso.consulta;
+  late DateTime _quando =
+      widget.inicial?.quando ?? DateTime.now().add(const Duration(days: 1));
   String? _erro;
 
   @override
@@ -537,6 +612,7 @@ class _FormularioCompromissoState extends State<_FormularioCompromisso> {
     }
     Navigator.of(context).pop(
       Compromisso(
+        id: widget.inicial?.id,
         titulo: titulo,
         tipo: _tipo,
         quando: _quando,
@@ -577,14 +653,8 @@ class _FormularioCompromissoState extends State<_FormularioCompromisso> {
               decoration: _decoracao('Título', 'Ex.: Cardiologista'),
             ),
             const SizedBox(height: 10),
-            TextField(
-              controller: _local,
-              style: const TextStyle(fontSize: 16),
-              decoration: _decoracao('Local (opcional)', 'Ex.: Clínica Central'),
-            ),
-            const SizedBox(height: 10),
-            // Endereço: as clínicas mandam por WhatsApp; aqui ele fica junto
-            // da hora, para não precisar procurar na hora de sair.
+            // Endereço logo depois do título: é o dado que se perde quando
+            // fica no fim do formulário, embaixo do teclado.
             TextField(
               controller: _endereco,
               textCapitalization: TextCapitalization.sentences,
@@ -595,6 +665,12 @@ class _FormularioCompromissoState extends State<_FormularioCompromisso> {
                 'Endereço da clínica',
                 'Cole aqui o endereço que veio no WhatsApp',
               ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _local,
+              style: const TextStyle(fontSize: 16),
+              decoration: _decoracao('Local (opcional)', 'Ex.: Clínica Central'),
             ),
             const SizedBox(height: 12),
             Wrap(
