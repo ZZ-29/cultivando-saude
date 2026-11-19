@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/navigation/barra_inferior.dart';
+import '../../../../core/config/config_repositorio.dart';
+import '../data/alarmes_remedios.dart';
+import '../data/lembretes_remedios.dart';
 import '../data/repositorio.dart';
 import '../domain/medicamento.dart';
 import '../domain/motor.dart';
@@ -37,6 +40,10 @@ class _RemediosPageState extends State<RemediosPage> {
   bool _carregando = true;
   final Set<PeriodoDia> _abertos = <PeriodoDia>{};
 
+  /// Alarmes das doses ligados? (preferência salva)
+  bool _alarmesLigados = false;
+  bool _alarmesExatos = true;
+
   @override
   void initState() {
     super.initState();
@@ -52,21 +59,65 @@ class _RemediosPageState extends State<RemediosPage> {
         final int? id = m.id;
         if (id != null) tomadas[id] = await medicamentosRepo.tomadas(id);
       }
+      final bool alarmes =
+          (await configRepo.ler(chaveLembretesRemedios)) == '1';
       if (!mounted) return;
       setState(() {
         _meds = lista;
         _tomadas
           ..clear()
           ..addAll(tomadas);
+        _alarmesLigados = alarmes;
         _carregando = false;
         // Abre o período de agora (uma vez só).
         if (_abertos.isEmpty) {
           _abertos.add(periodoDaHora(DateTime.now().hour));
         }
       });
+      // Mantém os alarmes alinhados com a lista de remédios.
+      if (alarmes) await _sincronizarAlarmes();
     } catch (_) {
       if (!mounted) return;
       setState(() => _carregando = false);
+    }
+  }
+
+  /// (Re)agenda os alarmes das doses com a lista atual de remédios.
+  Future<void> _sincronizarAlarmes() async {
+    final List<AlarmeDose> alarmes = alarmesDe(_meds);
+    if (!_alarmesLigados) {
+      await lembretesRemedios.desligar();
+      return;
+    }
+    final bool exato = await lembretesRemedios.sincronizar(alarmes);
+    _alarmesExatos = exato;
+  }
+
+  /// Liga/desliga os alarmes das doses.
+  Future<void> _alternarAlarmes(bool ligar) async {
+    setState(() => _alarmesLigados = ligar);
+    await configRepo.salvar(chaveLembretesRemedios, ligar ? '1' : '0');
+
+    if (ligar) {
+      final bool exato = await lembretesRemedios.sincronizar(alarmesDe(_meds));
+      _alarmesExatos = exato;
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            exato
+                ? 'Alarmes ligados nos horários das doses.'
+                : 'Alarmes ligados. O celular pode avisar com alguns minutos de '
+                    'diferença.',
+          ),
+        ),
+      );
+    } else {
+      await lembretesRemedios.desligar();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Alarmes das doses desligados.')),
+      );
     }
   }
 
@@ -150,6 +201,65 @@ class _RemediosPageState extends State<RemediosPage> {
     if (mounted) setState(() {});
   }
 
+  /// Bloco do alarme das doses: o coração do app.
+  Widget _blocoAlarmes() {
+    final int quantidade = alarmesDe(_meds).length;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 2, 16, 6),
+      padding: const EdgeInsets.fromLTRB(13, 10, 8, 10),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _azul.withValues(alpha: 0.26),
+          width: 1.1,
+        ),
+      ),
+      child: Row(
+        children: <Widget>[
+          Icon(Icons.alarm_on_rounded, size: 19, color: _azulEscuro),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                const Text(
+                  'Avisar nos horários das doses',
+                  style: TextStyle(
+                    fontFamily: 'Nunito',
+                    fontVariations: <FontVariation>[
+                      FontVariation('wght', 800),
+                    ],
+                    fontSize: 14.5,
+                    color: AppColors.texto,
+                  ),
+                ),
+                Text(
+                  _alarmesLigados
+                      ? (quantidade == 0
+                          ? 'nenhuma dose para avisar'
+                          : '$quantidade ${quantidade == 1 ? 'alarme' : 'alarmes'} '
+                              'agendados')
+                      : 'desligado',
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    color: AppColors.textoSuave,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: _alarmesLigados,
+            activeThumbColor: _azul,
+            onChanged: _alternarAlarmes,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<DoseDoDia> doses = _carregando ? <DoseDoDia>[] : _dosesDeHoje;
@@ -192,6 +302,7 @@ class _RemediosPageState extends State<RemediosPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             _cabecalho(tomadas, doses.length),
+            _blocoAlarmes(),
             Expanded(
               child: _carregando
                   ? const Center(child: CircularProgressIndicator(color: _azul))

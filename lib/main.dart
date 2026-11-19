@@ -11,6 +11,8 @@ import 'features/agenda/domain/compromisso.dart';
 // No Android vale o plugin de notificações; na web (preview) entra a versão
 // vazia, porque o plugin não existe em navegador.
 import 'config_sqlite.dart';
+import 'lembretes_remedios_android.dart'
+    if (dart.library.js_interop) 'lembretes_remedios_vazio.dart';
 import 'lembretes_pressao_android.dart'
     if (dart.library.js_interop) 'lembretes_pressao_vazio.dart';
 import 'compartilhar_android.dart'
@@ -19,6 +21,9 @@ import 'notificacoes_android.dart'
     if (dart.library.js_interop) 'notificacoes_vazio.dart';
 import 'features/exams/data/exames_repositorio.dart';
 import 'features/exams/data/exames_sqlite.dart';
+import 'features/medications/data/alarmes_remedios.dart';
+import 'features/medications/domain/medicamento.dart';
+import 'features/medications/data/lembretes_remedios.dart';
 import 'features/medications/data/repositorio.dart';
 import 'features/medications/data/repositorio_sqlite.dart';
 import 'features/nutrition/data/plano_repositorio.dart';
@@ -75,11 +80,24 @@ void main() async {
     usarCompartilharWhatsapp(CompartilharWhatsappAndroid());
     usarConfigRepo(ConfigSqlite());
     usarLembretesPressao(LembretesPressaoAndroid());
+    usarLembretesRemedios(LembretesRemediosAndroid());
     usarReabilitacaoRepo(ReabilitacaoSqlite());
   }
   // Garante que exista um paciente ativo antes da primeira tela: os nomes de
   // arquivo do banco dependem dele.
   await garantirPacienteAtual();
+
+  // Reagenda os alarmes das doses, se estiverem ligados.
+  if (!kIsWeb) {
+    try {
+      final bool ligados =
+          (await configRepo.ler(chaveLembretesRemedios)) == '1';
+      if (ligados) {
+        final List<Medicamento> meds = await medicamentosRepo.listar();
+        await lembretesRemedios.sincronizar(alarmesDe(meds));
+      }
+    } catch (_) {/* sem banco ainda */}
+  }
 
   // Reagenda os lembretes de pressão, se estiverem ligados.
   if (!kIsWeb) {
