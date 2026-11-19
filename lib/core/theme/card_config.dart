@@ -143,8 +143,8 @@ const List<CardConfig> cardsDoDashboard = <CardConfig>[
   // A Agenda ficou só para horários; os resultados ganharam card próprio.
   CardConfig(
     id: 'exames_lab',
-    titulo: 'Laboratório',
-    texto: 'Resultados de exames',
+    titulo: 'Exames clínicos',
+    texto: 'Sangue, urina, fezes',
     icone: Icons.science_rounded,
     cor: Color(0xFF1565C0),
     corBotao: Color(0xFF0D3E7C),
@@ -154,8 +154,8 @@ const List<CardConfig> cardsDoDashboard = <CardConfig>[
   // 6c — Exames de especialidades · roxo-vinho (imagem e laudo)
   CardConfig(
     id: 'exames_especialidade',
-    titulo: 'Especialidades',
-    texto: 'Raio-X, ultrassom e laudos',
+    titulo: 'Exames especiais',
+    texto: 'Eco, ressonância, raio-X',
     icone: Icons.monitor_heart_rounded,
     cor: Color(0xFF8E24AA),
     corBotao: Color(0xFF5A1470),

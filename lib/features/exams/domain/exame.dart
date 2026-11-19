@@ -70,20 +70,21 @@ enum CategoriaExame { laboratorial, especialidade }
 
 extension CategoriaExameInfo on CategoriaExame {
   String get titulo => switch (this) {
-        CategoriaExame.laboratorial => 'Resultados de laboratório',
-        CategoriaExame.especialidade => 'Exames de especialidades',
+        CategoriaExame.laboratorial => 'Exames clínicos',
+        CategoriaExame.especialidade => 'Exames especiais',
       };
 
   String get curto => switch (this) {
-        CategoriaExame.laboratorial => 'Laboratório',
-        CategoriaExame.especialidade => 'Especialidades',
+        CategoriaExame.laboratorial => 'Clínicos',
+        CategoriaExame.especialidade => 'Especiais',
       };
 
   String get dica => switch (this) {
         CategoriaExame.laboratorial =>
           'Sangue, urina e fezes — com a foto do resultado.',
         CategoriaExame.especialidade =>
-          'Raio-X, ultrassom, tomografia — com a foto do laudo.',
+          'Ecocardiograma, ressonância, tomografia, raio-X — com a foto '
+          'do laudo.',
       };
 
   String get exemplo => switch (this) {

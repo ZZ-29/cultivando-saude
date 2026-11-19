@@ -324,6 +324,22 @@ class _FolhaExameState extends State<_FolhaExame> {
     setState(() => _foto = caminho);
   }
 
+  /// Nomes comuns, para tocar em vez de digitar.
+  List<String> _exemplos() {
+    return widget.categoria == CategoriaExame.laboratorial
+        ? <String>['Hemograma', 'Glicemia', 'Colesterol', 'Urina', 'Fezes', 'TSH']
+        : <String>[
+            'Ecocardiograma',
+            'Ressonância',
+            'Tomografia',
+            'Raio-X',
+            'Ultrassom',
+            'Endoscopia',
+            'Eletrocardiograma',
+            'Holter',
+          ];
+  }
+
   void _salvar() {
     final String nome = _nome.text.trim();
     if (nome.isEmpty) {
@@ -385,6 +401,27 @@ class _FolhaExameState extends State<_FolhaExame> {
               textCapitalization: TextCapitalization.sentences,
               style: const TextStyle(fontSize: 16),
               decoration: _decoracao('Nome do exame', widget.categoria.exemplo),
+            ),
+            // Atalhos: exame especial tem nome comprido (ecocardiograma,
+            // ressonância) — tocar é melhor que digitar.
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: _exemplos().map((String exemplo) {
+                return ActionChip(
+                  label: Text(
+                    exemplo,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  backgroundColor: AppColors.card,
+                  side: BorderSide(color: _indigo.withValues(alpha: 0.30)),
+                  onPressed: () => setState(() => _nome.text = exemplo),
+                );
+              }).toList(growable: false),
             ),
             const SizedBox(height: 10),
             TextField(

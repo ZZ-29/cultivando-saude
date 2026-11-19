@@ -103,6 +103,6 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('Hemograma'), findsOneWidget);
     expect(find.text('Raio-X do tórax'), findsNothing);
-    expect(find.text('Resultados de laboratório'), findsOneWidget);
+    expect(find.text('Exames clínicos'), findsOneWidget);
   });
 }
