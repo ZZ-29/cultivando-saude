@@ -13,6 +13,15 @@ abstract class LembretesRemedios {
   Future<bool> sincronizar(List<AlarmeDose> alarmes);
 
   Future<void> desligar();
+
+  /// Agenda **um** alarme para daqui a [segundos] segundos.
+  ///
+  /// Serve para a pessoa ver o alarme tocar agora, em vez de esperar até o
+  /// horário real. Devolve o erro, quando falha — mensagem vazia = deu certo.
+  Future<String?> testar({int segundos = 60});
+
+  /// As notificações do app estão permitidas no sistema?
+  Future<bool> notificacoesPermitidas();
 }
 
 class LembretesRemediosIndisponiveis implements LembretesRemedios {
@@ -24,6 +33,13 @@ class LembretesRemediosIndisponiveis implements LembretesRemedios {
 
   @override
   Future<void> desligar() async {}
+
+  @override
+  Future<String?> testar({int segundos = 60}) async =>
+      'O alarme toca no app Android; aqui não é possível testar.';
+
+  @override
+  Future<bool> notificacoesPermitidas() async => false;
 }
 
 /// Implementação ativa nesta execução.

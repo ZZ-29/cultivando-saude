@@ -144,8 +144,58 @@ class LembretesRemediosAndroid implements LembretesRemedios {
     return quando;
   }
 
+
+  /// Agenda um alarme de teste para daqui a [segundos] segundos.
+  ///
+  /// Devolve `null` se agendou e a mensagem de erro se falhou — é o que permite
+  /// a pessoa (e eu) ver **por que** o alarme não toca, em vez de adivinhar.
+  @override
+  Future<String?> testar({int segundos = 60}) async {
+    try {
+      await _iniciar();
+      final tz.TZDateTime quando =
+          tz.TZDateTime.now(tz.local).add(Duration(seconds: segundos));
+      await _plugin.zonedSchedule(
+        id: 9900,
+        title: 'Teste do alarme — deu certo!',
+        body: 'É assim que o aviso do remédio vai aparecer.',
+        scheduledDate: quando,
+        notificationDetails: _detalhes,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      );
+      return null;
+    } catch (erro) {
+      // Segunda tentativa, com alarme inexato (Android sem permissão exata).
+      try {
+        await _plugin.zonedSchedule(
+          id: 9900,
+          title: 'Teste do alarme — deu certo!',
+          body: 'É assim que o aviso do remédio vai aparecer.',
+          scheduledDate: tz.TZDateTime.now(tz.local)
+              .add(Duration(seconds: segundos)),
+          notificationDetails: _detalhes,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        );
+        return null;
+      } catch (erro2) {
+        return 'não foi possível agendar: $erro2';
+      }
+    }
+  }
+
+  @override
+  Future<bool> notificacoesPermitidas() async {
+    await _iniciar();
+    final AndroidFlutterLocalNotificationsPlugin? android = _plugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+    final bool? ativas = await android?.areNotificationsEnabled();
+    return ativas ?? true;
+  }
+
   @override
   Future<void> desligar() async {
+
     await _iniciar();
     for (final int id in _agendados) {
       await _plugin.cancel(id: id);

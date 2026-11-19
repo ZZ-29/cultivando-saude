@@ -59,8 +59,15 @@ class _RemediosPageState extends State<RemediosPage> {
         final int? id = m.id;
         if (id != null) tomadas[id] = await medicamentosRepo.tomadas(id);
       }
-      final bool alarmes =
-          (await configRepo.ler(chaveLembretesRemedios)) == '1';
+      // Alarme é o coração do app: quando existe remédio cadastrado e a
+      // preferência nunca foi definida, ele vem **ligado**. Foi a causa de um
+      // alarme não tocar: a pessoa cadastrou o remédio e nunca ligou o bloco.
+      final String? salvo = await configRepo.ler(chaveLembretesRemedios);
+      final bool ligadoPorPadrao = salvo == null && lista.isNotEmpty;
+      final bool alarmes = salvo == null ? ligadoPorPadrao : salvo == '1';
+      if (ligadoPorPadrao) {
+        await configRepo.salvar(chaveLembretesRemedios, '1');
+      }
       if (!mounted) return;
       setState(() {
         _meds = lista;
@@ -201,6 +208,38 @@ class _RemediosPageState extends State<RemediosPage> {
     if (mounted) setState(() {});
   }
 
+  /// Agenda um alarme de teste (1 minuto) e diz o que aconteceu.
+  ///
+  /// Se falhar, a mensagem mostra **por quê** — é diagnóstico, não enfeite.
+  Future<void> _testarAlarme() async {
+    final bool permitidas = await lembretesRemedios.notificacoesPermitidas();
+    if (!permitidas && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'As notificações estão bloqueadas. Autorize em Configurações → '
+            'Apps → Cultivando Saúde → Notificações.',
+          ),
+          duration: Duration(seconds: 6),
+        ),
+      );
+      return;
+    }
+
+    final String? erro = await lembretesRemedios.testar(segundos: 60);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 6),
+        content: Text(
+          erro == null
+              ? 'Alarme de teste agendado: deve tocar em 1 minuto.'
+              : 'Falhou: $erro',
+        ),
+      ),
+    );
+  }
+
   /// Bloco do alarme das doses: o coração do app.
   Widget _blocoAlarmes() {
     final int quantidade = alarmesDe(_meds).length;
@@ -250,10 +289,29 @@ class _RemediosPageState extends State<RemediosPage> {
               ],
             ),
           ),
-          Switch(
-            value: _alarmesLigados,
-            activeThumbColor: _azul,
-            onChanged: _alternarAlarmes,
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Switch(
+                value: _alarmesLigados,
+                activeThumbColor: _azul,
+                onChanged: _alternarAlarmes,
+              ),
+              // Prova rápida: agenda um aviso para daqui a 1 minuto.
+              if (_alarmesLigados)
+                TextButton(
+                  onPressed: _testarAlarme,
+                  style: TextButton.styleFrom(
+                    foregroundColor: _azul,
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                  ),
+                  child: const Text(
+                    'testar',
+                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+                  ),
+                ),
+            ],
           ),
         ],
       ),
