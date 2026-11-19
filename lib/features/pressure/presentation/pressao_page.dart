@@ -495,6 +495,30 @@ class _PressaoPageState extends State<PressaoPage> {
                 ],
               ),
             ),
+            // Data de hoje: sem ela a pessoa não sabe a que dia pertencem as
+            // medidas que está vendo.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 0, 18, 2),
+              child: Row(
+                children: <Widget>[
+                  Icon(Icons.today_rounded,
+                      size: 13, color: _vermelho.withValues(alpha: 0.85)),
+                  const SizedBox(width: 5),
+                  Flexible(
+                    child: Text(
+                      'Hoje, ${_dataLonga(DateTime.now())}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: _vermelhoEscuro.withValues(alpha: 0.85),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             // Enviar ao médico pelo WhatsApp: é o que a cardiologista pediu,
             // sem copiar e colar.
             if (_itens.isNotEmpty)
@@ -834,8 +858,45 @@ class _PressaoPageState extends State<PressaoPage> {
   static String _hora(DateTime d) =>
       '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 
-  static String _data(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
+  /// "Hoje", "Ontem" ou "18/11" — a data do dia, sem a pessoa ter que
+  /// comparar número.
+  static String _data(DateTime d, {DateTime? referencia}) {
+    final DateTime agora = referencia ?? DateTime.now();
+    final DateTime dia = DateTime(d.year, d.month, d.day);
+    final DateTime hoje = DateTime(agora.year, agora.month, agora.day);
+    final int diferenca = hoje.difference(dia).inDays;
+    if (diferenca == 0) return 'Hoje';
+    if (diferenca == 1) return 'Ontem';
+    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
+  }
+
+  /// "terça-feira, 18 de novembro de 2026" — data completa de hoje.
+  static String _dataLonga(DateTime d) {
+    const List<String> dias = <String>[
+      'segunda-feira',
+      'terça-feira',
+      'quarta-feira',
+      'quinta-feira',
+      'sexta-feira',
+      'sábado',
+      'domingo',
+    ];
+    const List<String> meses = <String>[
+      'janeiro',
+      'fevereiro',
+      'março',
+      'abril',
+      'maio',
+      'junho',
+      'julho',
+      'agosto',
+      'setembro',
+      'outubro',
+      'novembro',
+      'dezembro',
+    ];
+    return '${dias[d.weekday - 1]}, ${d.day} de ${meses[d.month - 1]} de ${d.year}';
+  }
 }
 
 /// Folha que pede um número inteiro.
