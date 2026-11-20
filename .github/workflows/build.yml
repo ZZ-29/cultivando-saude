@@ -15,6 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
+    env:
+      CULTIVANDO_SENHA: ${{ secrets.CULTIVANDO_SENHA }}
+
     steps:
       - name: Baixar o código
         uses: actions/checkout@v4
@@ -43,6 +46,14 @@ jobs:
         run: |
           yes | "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" "ndk;30.0.16248370" > /dev/null || true
           ls "${ANDROID_HOME}/ndk" || true
+
+      # Chave de assinatura FIXA: sem isso cada build do CI usa uma chave
+      # diferente, o Android exige desinstalar e os dados do app somem.
+      - name: Restaurar chave de assinatura
+        run: |
+          mkdir -p android-build
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android-build/cultivando.jks
+          ls -l android-build/
 
       - name: Dependências
         run: flutter pub get
